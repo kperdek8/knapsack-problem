@@ -49,6 +49,21 @@ void io_utils::print_population(std::span<int> population, const unsigned int ch
   std::cout<<std::endl;
 }
 
+
+void io_utils::print_population_stats(int options,
+    const std::span<int>& pop, int chrom_length, double total_fitness, int best_index, double current_best_fitness
+) {
+    if (options & io_utils::PRINT_AVG)
+        std::cout << "Srednie przystosowanie nowej populacji: "
+                  << total_fitness / pop.size() << "\n";
+    if (options & io_utils::PRINT_BEST_CHROM)
+        std::cout << "Najlepszy osobnik: "
+                  << to_binary_string(pop[best_index], chrom_length) << "\n";
+    if (options & io_utils::PRINT_BEST_FITNESS)
+        std::cout << "Najlepsze przystosowanie: "
+                  << current_best_fitness << "\n";
+}
+
 void io_utils::log_results_to_csv(const std::string& filename,
                         int pop_size, float cross_chance, float mutation_chance,
                         int max_generations, int max_no_improvement,

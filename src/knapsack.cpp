@@ -1,4 +1,3 @@
-#include "helper.hpp"
 #include "io_utils.hpp"
 #include "item.hpp"
 #include "rng.hpp"
@@ -108,7 +107,7 @@ population_fitness(const std::span<int> population, const std::span<Item> items,
 int algorithm(const int max_generations, const int pop_size,
               const int max_no_improvement, const float cross_chance,
               const float mutation_chance, const std::span<Item> items,
-              const int max_weight, bool debug_print = false) {
+              const int max_weight, int output_mask = 0) {
   int best_individual_fitness = 0;
   int generations_without_improvement = 0;
   const unsigned int item_count = items.size();
@@ -124,7 +123,7 @@ int algorithm(const int max_generations, const int pop_size,
 
   // Pierwszy warunek stopu: Limit liczby generacji
   for (int generations = 0; generations < max_generations; ++generations) {
-    if (debug_print) {
+    if (output_mask || io_utils::PRINT_GENERATION) {
       std::cout << "Generacja " << generations << std::endl;
     }
     auto [fitness_values, total_fitness, best_index] = population_fitness(
@@ -134,16 +133,10 @@ int algorithm(const int max_generations, const int pop_size,
         fitness_values[best_index]; // Przystosowanie najlepszego osobnika z
                                     // populacji
 
-    if (debug_print) {
-      // print_population(population, chrom_length);
-      std::cout << "Srednie przystosowanie nowej populacji: "
-                << total_fitness / pop_size << std::endl;
-      std::cout << "Najlepszy osobnik z nowej populacji: "
-                << to_binary_string(population[best_index], chrom_length)
-                << std::endl;
-      std::cout
-          << "Najlepsze przystosowanie (wartosc plecaka) w nowej populacji: "
-          << current_best_fitness << std::endl;
+    if (output_mask) {
+      io_utils::print_population_stats(output_mask, population, chrom_length,
+                                       total_fitness, best_index,
+                                       current_best_fitness);
     }
 
     if (current_best_fitness > best_individual_fitness) {
@@ -203,7 +196,11 @@ int main(int argc, char *argv[]) {
   float MUTATION_CHANCE = 0.1f;
   int MAX_GENERATIONS = 50;
   int MAX_NO_IMPROVEMENT = 20;
-  bool text_output = true;
+  int debug_mask = io_utils::PRINT_SUMMARY |
+                    io_utils::PRINT_SUMMARY |
+                    io_utils::PRINT_AVG |
+                    //io_utils::PRINT_BEST_CHROM |
+                    io_utils::PRINT_BEST_FITNESS;
 
   // Nadpisz parametry jeśli zostały podane
   if (argc > 2)
@@ -224,10 +221,10 @@ int main(int argc, char *argv[]) {
   // Algorytm
   int best_fitness =
       algorithm(MAX_GENERATIONS, POP_SIZE, MAX_NO_IMPROVEMENT, CROSS_CHANCE,
-                MUTATION_CHANCE, items, max_weight, text_output);
+                MUTATION_CHANCE, items, max_weight, debug_mask);
 
   // Wypisanie do konsoli
-  if (text_output) {
+  if (debug_mask | io_utils::PRINT_SUMMARY) {
     std::cout << "=========================================================="
               << std::endl;
     std::cout << "POP_SIZE CROSS_CHANCE MUTATION_CHANCE MAX_GENERATIONS "
