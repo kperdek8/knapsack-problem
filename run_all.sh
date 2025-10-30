@@ -1,14 +1,19 @@
 #!/bin/bash
 
-SRC="cw1.cpp"
-EXE="cw1"
+SRC_DIR=$(pwd)
+BUILD_DIR="$SRC_DIR/build"
+EXE="knapsack"
 
-# Kompilacja
-g++ -std=c++20 -O2 -static-libgcc -static-libstdc++ -o $EXE $SRC
-if [ $? -ne 0 ]; then
-    echo "Kompilacja nie powiodła się"
-    exit 1
-fi
+echo ">>> Configuring and building with CMake..."
+mkdir -p "$BUILD_DIR"
+cd "$BUILD_DIR" || exit 1
+
+cmake -DCMAKE_BUILD_TYPE=Release "$SRC_DIR" || { echo "CMake configuration failed"; exit 1; }
+
+cmake --build . || { echo "Build failed"; exit 1; }
+
+cp "$BUILD_DIR/$EXE" "$SRC_DIR/" || { echo "Failed to copy executable"; exit 1; }
+cd "$SRC_DIR" || exit 1
 
 FILES=(
     "knapPI_1_50_1000_1.in"
@@ -23,11 +28,11 @@ FILES=(
 )
 
 # Parametry
-POP_SIZES=(20 50 100)
+POP_SIZES=(20 50 100 200)
 CROSS_CHANCES=(0.7 0.8 0.9)
 MUTATION_CHANCES=(0.05 0.1 0.15)
-MAX_GENERATIONS=(50 100)
-MAX_NO_IMPROVEMENT=(10)
+MAX_GENERATIONS=(50 100 250)
+MAX_NO_IMPROVEMENT=(20)
 
 # Wywołanie każdej kombinacji
 for file in "${FILES[@]}"; do

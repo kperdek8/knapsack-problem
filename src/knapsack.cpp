@@ -1,117 +1,20 @@
 #include <iostream>
 #include <span>
-#include <random>
 #include <cmath>
 #include <utility>
 #include <tuple>
-#include <sstream>
-#include <fstream>
 #include <string>
 #include <filesystem>
-
-struct Item {
-  int value;
-  int weight;
-  Item(const int v, const int w) : value(v), weight(w) {}
-};
-
-std::string to_binary_string(const int value, const unsigned int bits) {
-  std::string result;
-  result.reserve(bits);
-  for (int i = bits - 1; i >= 0; --i) {
-    result.push_back((value & (1ULL << i)) ? '1' : '0');
-  }
-  return result;
-}
-
-void log_results_to_csv(const std::string& filename,
-                        int pop_size, float cross_chance, float mutation_chance,
-                        int max_generations, int max_no_improvement,
-                        int best_fitness, float best_fitness_ratio)
-{
-  namespace fs = std::filesystem;
-
-  bool file_exists = fs::exists(filename);
-
-  std::ofstream file(filename, std::ios::app); // append mode
-  if (!file.is_open()) {
-    std::cerr << "Nie mozna otworzyc pliku: " << filename << std::endl;
-    return;
-  }
-
-  if (!file_exists) {
-    file << "POP_SIZE,CROSS_CHANCE,MUTATION_CHANCE,MAX_GENERATIONS,MAX_NO_IMPROVEMENT,BEST_FIT,BEST_FIT_PER\n";
-  }
-
-  file << pop_size << ","
-       << cross_chance << ","
-       << mutation_chance << ","
-       << max_generations << ","
-       << max_no_improvement << ","
-       << best_fitness << ","
-       << best_fitness_ratio
-       << "\n";
-
-  file.close();
-}
-
-int random_int(const int min, const int max) {
-  static std::mt19937_64 gen(std::random_device{}());
-  std::uniform_int_distribution<int> dist(min, max);
-  return dist(gen);
-}
-
-float random_float() {
-  static std::mt19937_64 gen(std::random_device{}());
-  static std::uniform_real_distribution<float> dist(0.0, 1.0);
-  return dist(gen);
-}
-
-std::vector<Item> load_items(const std::string& filename, int& max_weight, int& optimal_value) {
-  std::ifstream file(filename);
-  if (!file.is_open()) {
-    throw std::runtime_error("Nie mozna otworzyc pliku: " + filename);
-  }
-
-  int n;
-  file >> n;               // liczba przedmiotów
-  file >> max_weight;      // maksymalna pojemność
-  file >> optimal_value;   // optymalna wartość
-
-  std::vector<Item> items;
-  items.reserve(n);
-
-  std::string line;
-  std::getline(file, line); // czyść bufor po ostatnim znaku nowej linii (linia pusta)
-
-  for (int i = 0; i < n; ++i) {
-    if (!std::getline(file, line)) break;
-
-    std::istringstream iss(line);
-
-    int in_optimal_flag;
-    int value, weight;
-
-    iss >> value >> weight >> in_optimal_flag;
-    // item.in_optimal = (in_optimal_flag != 0); // możliwość dodania flagi z optymalnym rozwiązaniem w razie potrzeby
-    items.emplace_back(value, weight);
-  }
-
-  file.close();
-  return items;
-}
+#include <vector>
+#include "helper.hpp"
+#include "rng.hpp"
+#include "item.hpp"
+#include "io_utils.hpp"
 
 void initialize_population(std::span<int> population, const unsigned int chrom_length) {
   for(int& individual : population) {
     individual = random_int(0,pow(2,chrom_length) - 1);
   }
-}
-
-void print_population(std::span<int> population, const unsigned int chrom_length) {
-  for(const int& individual : population) {
-    std::cout<<to_binary_string(individual, chrom_length)<<" ";
-  }
-  std::cout<<std::endl;
 }
 
 // Pierwszy przedmiot = najmłodszy bit (z prawej)
@@ -219,7 +122,7 @@ int algorithm(const int max_generations, const int pop_size, const int max_no_im
     //print_population(population, chrom_length);
     if(debug_print) {
       std::cout<<"Srednie przystosowanie nowej populacji: "<< total_fitness / pop_size << std::endl;
-      //std::cout<<"Najlepszy osobnik z nowej populacji: "<< to_binary_string(population[best_index], chrom_length) << std::endl;
+      std::cout<<"Najlepszy osobnik z nowej populacji: "<< to_binary_string(population[best_index], chrom_length) << std::endl;
       std::cout<<"Najlepsze przystosowanie (wartosc plecaka) w nowej populacji: "<< current_best_fitness<<std::endl;
     }
 
@@ -285,7 +188,7 @@ int main(int argc, char* argv[]) {
 
   // Wczytanie danych
   int max_weight, optimal_value;
-  auto items = load_items(input_file, max_weight, optimal_value);
+  auto items = io_utils::load_items(input_file, max_weight, optimal_value);
 
   // Algorytm
   int best_fitness = algorithm(MAX_GENERATIONS, POP_SIZE, MAX_NO_IMPROVEMENT, CROSS_CHANCE, MUTATION_CHANCE, items, max_weight, text_output);
@@ -304,7 +207,7 @@ int main(int argc, char* argv[]) {
   std::filesystem::path out_file = input_file;
   out_file.replace_extension(".csv");
 
-  log_results_to_csv(out_file.string(),POP_SIZE,CROSS_CHANCE,MUTATION_CHANCE,MAX_GENERATIONS,MAX_NO_IMPROVEMENT,best_fitness,static_cast<float>(best_fitness) / optimal_value);
+  io_utils::log_results_to_csv(out_file.string(),POP_SIZE,CROSS_CHANCE,MUTATION_CHANCE,MAX_GENERATIONS,MAX_NO_IMPROVEMENT,best_fitness,static_cast<float>(best_fitness) / optimal_value);
 
   return 0;
 }
