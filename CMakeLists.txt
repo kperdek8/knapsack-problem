@@ -10,6 +10,11 @@ add_executable(knapsack
     src/helper.cpp
     src/rng.cpp
     src/io_utils.cpp
+    src/pop_init.cpp
+    src/pop_fit.cpp
+    src/pop_crossover.cpp
+    src/pop_mutation.cpp
+    src/pop_selection.cpp
 )
 
 target_include_directories(knapsack

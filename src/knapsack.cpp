@@ -1,7 +1,11 @@
 #include "io_utils.hpp"
 #include "item.hpp"
+#include "pop_crossover.hpp"
+#include "pop_fit.hpp"
+#include "pop_init.hpp"
+#include "pop_mutation.hpp"
+#include "pop_selection.hpp"
 #include "rng.hpp"
-#include <cmath>
 #include <filesystem>
 #include <iostream>
 #include <span>
@@ -9,78 +13,6 @@
 #include <tuple>
 #include <utility>
 #include <vector>
-
-void initialize_population(std::span<int> population,
-                           const unsigned int chrom_length) {
-  for (int &individual : population) {
-    individual = random_int(0, pow(2, chrom_length) - 1);
-  }
-}
-
-// Pierwszy przedmiot = najmłodszy bit (z prawej)
-int fitness(const std::span<Item> items, const int chrom,
-            const int max_weight) {
-  int total_weight = 0;
-  int total_value = 0;
-
-  for (size_t i = 0; i < items.size(); ++i) {
-    if (chrom & (1ULL << i)) {
-      total_weight += items[i].weight;
-      total_value += items[i].value;
-    }
-  }
-
-  if (total_weight > max_weight)
-    return total_value * max_weight / total_weight;
-  return total_value;
-}
-
-// Punkt podziału liczony od prawej z indeksowanem od zera
-std::pair<int, int> crossover(const int parent1, const int parent2,
-                              const unsigned int chrom_length) {
-  const int crossover_bit =
-      random_int(1, chrom_length - 1); // n = 0 lub n=chrom_length sprawiły że
-                                       // dzieci byłyby jednakowe do rodziców
-  const int lower_mask = (1 << crossover_bit) - 1;
-  const int upper_mask = ((1 << chrom_length) - 1) ^ lower_mask;
-
-  int child1 = (parent1 & lower_mask) | (parent2 & upper_mask);
-  int child2 = (parent2 & lower_mask) | (parent1 & upper_mask);
-
-  return {child1, child2};
-}
-
-// Punkt mutacji liczony od prawej z indeksowanem od zera
-int mutate(const int chrom, const unsigned int chrom_length) {
-  const int mutation_bit = random_int(0, chrom_length - 1);
-  const int mutation_mask = 1 << mutation_bit;
-
-  return chrom ^ mutation_mask;
-}
-
-int roulette_select(const std::span<int> population,
-                    const std::span<const int> fitness_values,
-                    int total_fitness) {
-  // Wybierz losowego osobnika jeżeli żaden nie jest przystosowany
-  if (total_fitness == 0) {
-    return population[random_int(0, population.size() - 1)];
-  }
-
-  // Losowanie punktu r z zakresu [0, total_fitness)
-  int r = random_int(0, total_fitness - 1);
-
-  // Znajdz osobnika która zawiera punkt r
-  int cumulative = 0;
-  for (size_t i = 0; i < population.size(); ++i) {
-    cumulative += fitness_values[i];
-    if (r < cumulative) {
-      return population[i];
-    }
-  }
-
-  throw std::logic_error(
-      "Funkcja metody ruletkowej nie zwróciła poprawnie osobnika");
-}
 
 // W razie problemu z wydajnością zamiast zwracać fitness_values można przyjąć
 // referencję jako parametr by uniknać kopiowania listy.
@@ -93,7 +25,8 @@ population_fitness(const std::span<int> population, const std::span<Item> items,
   std::vector<int> fitness_values(population.size());
 
   for (size_t i = 0; i < population.size(); ++i) {
-    fitness_values[i] = fitness(items, population[i], max_weight);
+    fitness_values[i] =
+        fitness(items, population[i], max_weight, FitMethod::RATIO_PENALTY);
     total_fitness += fitness_values[i];
     if (fitness_values[i] > best_fitness) {
       best_fitness = fitness_values[i];
@@ -115,7 +48,7 @@ int algorithm(const int max_generations, const int pop_size,
 
   std::vector<int> population{};
   population.resize(pop_size);
-  initialize_population(population, item_count);
+  initialize_population(population, item_count, InitMethod::RANDOM);
 
   // Wektor dla nowej populacji
   std::vector<int> new_population;
@@ -150,20 +83,21 @@ int algorithm(const int max_generations, const int pop_size,
       break; // Drugi warunek stopu: brak poprawy najlepszego rozwiązania
 
     for (size_t i = 0; i < pop_size; i += 2) {
-      int parent1 = roulette_select(population, fitness_values, total_fitness);
-      int parent2 = roulette_select(population, fitness_values, total_fitness);
+      int parent1 = select(population, fitness_values, total_fitness, SelectionMethod::ROULETTE);
+      int parent2 = select(population, fitness_values, total_fitness, SelectionMethod::ROULETTE);
 
       // Krzyżowanie jednopunktowe
       auto [children1, children2] =
           (random_float() < cross_chance)
-              ? crossover(parent1, parent2, chrom_length)
+              ? crossover(parent1, parent2, chrom_length,
+                          CrossoverMethod::ONE_POINT)
               : std::make_pair(parent1, parent2);
 
       // Mutacje
       if (random_float() < mutation_chance)
-        children1 = mutate(children1, chrom_length);
+        children1 = mutate(children1, chrom_length, MutationMethod::BIT_FLIP);
       if (random_float() < mutation_chance)
-        children2 = mutate(children2, chrom_length);
+        children2 = mutate(children2, chrom_length, MutationMethod::BIT_FLIP);
 
       // Dodaj potomków do nowej populacji
       new_population[i] = children1;
@@ -196,11 +130,10 @@ int main(int argc, char *argv[]) {
   float MUTATION_CHANCE = 0.1f;
   int MAX_GENERATIONS = 50;
   int MAX_NO_IMPROVEMENT = 20;
-  int debug_mask = io_utils::PRINT_SUMMARY |
-                    io_utils::PRINT_SUMMARY |
-                    io_utils::PRINT_AVG |
-                    //io_utils::PRINT_BEST_CHROM |
-                    io_utils::PRINT_BEST_FITNESS;
+  int debug_mask = io_utils::PRINT_SUMMARY | io_utils::PRINT_SUMMARY |
+                   io_utils::PRINT_AVG |
+                   // io_utils::PRINT_BEST_CHROM |
+                   io_utils::PRINT_BEST_FITNESS;
 
   // Nadpisz parametry jeśli zostały podane
   if (argc > 2)
