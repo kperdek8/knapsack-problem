@@ -1,10 +1,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <cmath>
 #include "io_utils.hpp"
 #include "helper.hpp"
-#include "rng.hpp"
 
 // INPUT
 

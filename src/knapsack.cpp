@@ -1,24 +1,26 @@
+#include "helper.hpp"
+#include "io_utils.hpp"
+#include "item.hpp"
+#include "rng.hpp"
+#include <cmath>
+#include <filesystem>
 #include <iostream>
 #include <span>
-#include <cmath>
-#include <utility>
-#include <tuple>
 #include <string>
-#include <filesystem>
+#include <tuple>
+#include <utility>
 #include <vector>
-#include "helper.hpp"
-#include "rng.hpp"
-#include "item.hpp"
-#include "io_utils.hpp"
 
-void initialize_population(std::span<int> population, const unsigned int chrom_length) {
-  for(int& individual : population) {
-    individual = random_int(0,pow(2,chrom_length) - 1);
+void initialize_population(std::span<int> population,
+                           const unsigned int chrom_length) {
+  for (int &individual : population) {
+    individual = random_int(0, pow(2, chrom_length) - 1);
   }
 }
 
 // Pierwszy przedmiot = najmłodszy bit (z prawej)
-int fitness(const std::span<Item> items, const int chrom, const int max_weight) {
+int fitness(const std::span<Item> items, const int chrom,
+            const int max_weight) {
   int total_weight = 0;
   int total_value = 0;
 
@@ -29,13 +31,17 @@ int fitness(const std::span<Item> items, const int chrom, const int max_weight) 
     }
   }
 
-  if (total_weight > max_weight) return total_value * max_weight / total_weight;
+  if (total_weight > max_weight)
+    return total_value * max_weight / total_weight;
   return total_value;
 }
 
 // Punkt podziału liczony od prawej z indeksowanem od zera
-std::pair<int,int> crossover(const int parent1, const int parent2, const unsigned int chrom_length) {
-  const int crossover_bit = random_int(1, chrom_length-1); // n = 0 lub n=chrom_length sprawiły że dzieci byłyby jednakowe do rodziców
+std::pair<int, int> crossover(const int parent1, const int parent2,
+                              const unsigned int chrom_length) {
+  const int crossover_bit =
+      random_int(1, chrom_length - 1); // n = 0 lub n=chrom_length sprawiły że
+                                       // dzieci byłyby jednakowe do rodziców
   const int lower_mask = (1 << crossover_bit) - 1;
   const int upper_mask = ((1 << chrom_length) - 1) ^ lower_mask;
 
@@ -47,13 +53,15 @@ std::pair<int,int> crossover(const int parent1, const int parent2, const unsigne
 
 // Punkt mutacji liczony od prawej z indeksowanem od zera
 int mutate(const int chrom, const unsigned int chrom_length) {
-  const int mutation_bit = random_int(0, chrom_length-1);
+  const int mutation_bit = random_int(0, chrom_length - 1);
   const int mutation_mask = 1 << mutation_bit;
 
   return chrom ^ mutation_mask;
 }
 
-int roulette_select(const std::span<int> population, const std::span<const int> fitness_values, int total_fitness) {
+int roulette_select(const std::span<int> population,
+                    const std::span<const int> fitness_values,
+                    int total_fitness) {
   // Wybierz losowego osobnika jeżeli żaden nie jest przystosowany
   if (total_fitness == 0) {
     return population[random_int(0, population.size() - 1)];
@@ -71,11 +79,15 @@ int roulette_select(const std::span<int> population, const std::span<const int> 
     }
   }
 
-  throw std::logic_error("Funkcja metody ruletkowej nie zwróciła poprawnie osobnika");
+  throw std::logic_error(
+      "Funkcja metody ruletkowej nie zwróciła poprawnie osobnika");
 }
 
-// W razie problemu z wydajnością zamiast zwracać fitness_values można przyjąć referencję jako parametr by uniknać kopiowania listy.
-std::tuple<std::vector<int>, int, size_t> population_fitness(const std::span<int> population, const std::span<Item> items, const int max_weight) {
+// W razie problemu z wydajnością zamiast zwracać fitness_values można przyjąć
+// referencję jako parametr by uniknać kopiowania listy.
+std::tuple<std::vector<int>, int, size_t>
+population_fitness(const std::span<int> population, const std::span<Item> items,
+                   const int max_weight) {
   int total_fitness = 0;
   int best_fitness = 0;
   size_t best_index = 0;
@@ -93,9 +105,10 @@ std::tuple<std::vector<int>, int, size_t> population_fitness(const std::span<int
   return {fitness_values, total_fitness, best_index};
 }
 
-int algorithm(const int max_generations, const int pop_size, const int max_no_improvement, const float cross_chance,
-  const float mutation_chance, const std::span<Item> items, const int max_weight, bool debug_print = false)
-{
+int algorithm(const int max_generations, const int pop_size,
+              const int max_no_improvement, const float cross_chance,
+              const float mutation_chance, const std::span<Item> items,
+              const int max_weight, bool debug_print = false) {
   int best_individual_fitness = 0;
   int generations_without_improvement = 0;
   const unsigned int item_count = items.size();
@@ -111,19 +124,26 @@ int algorithm(const int max_generations, const int pop_size, const int max_no_im
 
   // Pierwszy warunek stopu: Limit liczby generacji
   for (int generations = 0; generations < max_generations; ++generations) {
-    if(debug_print) {
-      std::cout<<"Generacja "<<generations<<std::endl;
+    if (debug_print) {
+      std::cout << "Generacja " << generations << std::endl;
     }
-    auto [fitness_values, total_fitness, best_index] =
-        population_fitness(population, items, max_weight); // Wyliczenie przystosowania osobników
+    auto [fitness_values, total_fitness, best_index] = population_fitness(
+        population, items, max_weight); // Wyliczenie przystosowania osobników
 
-    int current_best_fitness = fitness_values[best_index]; // Przystosowanie najlepszego osobnika z populacji
+    int current_best_fitness =
+        fitness_values[best_index]; // Przystosowanie najlepszego osobnika z
+                                    // populacji
 
-    //print_population(population, chrom_length);
-    if(debug_print) {
-      std::cout<<"Srednie przystosowanie nowej populacji: "<< total_fitness / pop_size << std::endl;
-      std::cout<<"Najlepszy osobnik z nowej populacji: "<< to_binary_string(population[best_index], chrom_length) << std::endl;
-      std::cout<<"Najlepsze przystosowanie (wartosc plecaka) w nowej populacji: "<< current_best_fitness<<std::endl;
+    if (debug_print) {
+      // print_population(population, chrom_length);
+      std::cout << "Srednie przystosowanie nowej populacji: "
+                << total_fitness / pop_size << std::endl;
+      std::cout << "Najlepszy osobnik z nowej populacji: "
+                << to_binary_string(population[best_index], chrom_length)
+                << std::endl;
+      std::cout
+          << "Najlepsze przystosowanie (wartosc plecaka) w nowej populacji: "
+          << current_best_fitness << std::endl;
     }
 
     if (current_best_fitness > best_individual_fitness) {
@@ -141,17 +161,21 @@ int algorithm(const int max_generations, const int pop_size, const int max_no_im
       int parent2 = roulette_select(population, fitness_values, total_fitness);
 
       // Krzyżowanie jednopunktowe
-      auto [children1, children2] = (random_float() < cross_chance)
-                      ? crossover(parent1, parent2, chrom_length)
-                      : std::make_pair(parent1, parent2);
+      auto [children1, children2] =
+          (random_float() < cross_chance)
+              ? crossover(parent1, parent2, chrom_length)
+              : std::make_pair(parent1, parent2);
 
       // Mutacje
-      if (random_float() < mutation_chance) children1  = mutate(children1, chrom_length);
-      if (random_float() < mutation_chance) children2 = mutate(children2, chrom_length);
+      if (random_float() < mutation_chance)
+        children1 = mutate(children1, chrom_length);
+      if (random_float() < mutation_chance)
+        children2 = mutate(children2, chrom_length);
 
       // Dodaj potomków do nowej populacji
       new_population[i] = children1;
-      if (i + 1 < pop_size) new_population[i+1] = children2;
+      if (i + 1 < pop_size)
+        new_population[i + 1] = children2;
     }
 
     // Zamiana populacji
@@ -161,11 +185,13 @@ int algorithm(const int max_generations, const int pop_size, const int max_no_im
   return best_individual_fitness;
 }
 
+int main(int argc, char *argv[]) {
 
-int main(int argc, char* argv[]) {
-
-  if(argc < 2) {
-    std::cerr << "Uzycie: " << argv[0] << " <plik_wejsciowy> [POP_SIZE CROSS_CHANCE MUTATION_CHANCE MAX_GENERATIONS MAX_NO_IMPROVEMENT]" << std::endl;
+  if (argc < 2) {
+    std::cerr << "Uzycie: " << argv[0]
+              << " <plik_wejsciowy> [POP_SIZE CROSS_CHANCE MUTATION_CHANCE "
+                 "MAX_GENERATIONS MAX_NO_IMPROVEMENT]"
+              << std::endl;
     return 1;
   }
 
@@ -180,42 +206,61 @@ int main(int argc, char* argv[]) {
   bool text_output = true;
 
   // Nadpisz parametry jeśli zostały podane
-  if(argc > 2) POP_SIZE = std::atoi(argv[2]);
-  if(argc > 3) CROSS_CHANCE = std::atof(argv[3]);
-  if(argc > 4) MUTATION_CHANCE = std::atof(argv[4]);
-  if(argc > 5) MAX_GENERATIONS = std::atoi(argv[5]);
-  if(argc > 6) MAX_NO_IMPROVEMENT = std::atoi(argv[6]);
+  if (argc > 2)
+    POP_SIZE = std::atoi(argv[2]);
+  if (argc > 3)
+    CROSS_CHANCE = std::atof(argv[3]);
+  if (argc > 4)
+    MUTATION_CHANCE = std::atof(argv[4]);
+  if (argc > 5)
+    MAX_GENERATIONS = std::atoi(argv[5]);
+  if (argc > 6)
+    MAX_NO_IMPROVEMENT = std::atoi(argv[6]);
 
   // Wczytanie danych
   int max_weight, optimal_value;
   auto items = io_utils::load_items(input_file, max_weight, optimal_value);
 
   // Algorytm
-  int best_fitness = algorithm(MAX_GENERATIONS, POP_SIZE, MAX_NO_IMPROVEMENT, CROSS_CHANCE, MUTATION_CHANCE, items, max_weight, text_output);
+  int best_fitness =
+      algorithm(MAX_GENERATIONS, POP_SIZE, MAX_NO_IMPROVEMENT, CROSS_CHANCE,
+                MUTATION_CHANCE, items, max_weight, text_output);
 
   // Wypisanie do konsoli
-  if(text_output) {
-    std::cout<<"=========================================================="<<std::endl;
-    std::cout<<"POP_SIZE CROSS_CHANCE MUTATION_CHANCE MAX_GENERATIONS MAX_NO_IMPROVEMENT BEST_FIT BEST_FIT_PER"<<std::endl;
-    std::cout<<POP_SIZE<<" "<<CROSS_CHANCE<<" "<<MUTATION_CHANCE<<" "<<MAX_GENERATIONS<<" "<<MAX_NO_IMPROVEMENT<<" "<<best_fitness<<" "<<static_cast<float>(best_fitness) / optimal_value<<std::endl;
-    std::cout<<"Najlepsze przystosowanie (wszystkie populacje): "<<best_fitness<<std::endl;
-    std::cout<<"Optymalne rozwiazanie: "<<optimal_value<<std::endl;
-    std::cout<<"Zblizenie do optymalnego rozwiazania: "<<static_cast<float>(best_fitness) / optimal_value<<std::endl;
+  if (text_output) {
+    std::cout << "=========================================================="
+              << std::endl;
+    std::cout << "POP_SIZE CROSS_CHANCE MUTATION_CHANCE MAX_GENERATIONS "
+                 "MAX_NO_IMPROVEMENT BEST_FIT BEST_FIT_PER"
+              << std::endl;
+    std::cout << POP_SIZE << " " << CROSS_CHANCE << " " << MUTATION_CHANCE
+              << " " << MAX_GENERATIONS << " " << MAX_NO_IMPROVEMENT << " "
+              << best_fitness << " "
+              << static_cast<float>(best_fitness) / optimal_value << std::endl;
+    std::cout << "Najlepsze przystosowanie (wszystkie populacje): "
+              << best_fitness << std::endl;
+    std::cout << "Optymalne rozwiazanie: " << optimal_value << std::endl;
+    std::cout << "Zblizenie do optymalnego rozwiazania: "
+              << static_cast<float>(best_fitness) / optimal_value << std::endl;
   }
 
   // Zapis do pliku .out w formacie csv
   std::filesystem::path out_file = input_file;
   out_file.replace_extension(".csv");
 
-  io_utils::log_results_to_csv(out_file.string(),POP_SIZE,CROSS_CHANCE,MUTATION_CHANCE,MAX_GENERATIONS,MAX_NO_IMPROVEMENT,best_fitness,static_cast<float>(best_fitness) / optimal_value);
+  io_utils::log_results_to_csv(
+      out_file.string(), POP_SIZE, CROSS_CHANCE, MUTATION_CHANCE,
+      MAX_GENERATIONS, MAX_NO_IMPROVEMENT, best_fitness,
+      static_cast<float>(best_fitness) / optimal_value);
 
   return 0;
 }
 
 /* Źródło danych https://hjemmesider.diku.dk/~pisinger/codes.html
- * Zbiory wybrano ze względu na liczbe przedmiotów (N=50, 100, 500) oraz maksymalną wagę plecaka (C=1000,10000,25000)
- * Uwzględniono tylko jedną maksymalną wagę przedmiotów równą 1000
- * Format wejściowy dostosowano do łatwiejszego wczytywania
+ * Zbiory wybrano ze względu na liczbe przedmiotów (N=50, 100, 500) oraz
+ * maksymalną wagę plecaka (C=1000,10000,25000) Uwzględniono tylko jedną
+ * maksymalną wagę przedmiotów równą 1000 Format wejściowy dostosowano do
+ * łatwiejszego wczytywania
  *
  * Użyte zbiory:
  * knapPI_1_50_1000_1 knapPI_1_50_1000_42 knapPI_1_50_1000_85
