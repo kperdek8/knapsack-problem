@@ -10,6 +10,6 @@ int random_int(const int min, const int max) {
 
 float random_float(const float min, const float max) {
     static std::mt19937_64 gen(std::random_device{}());
-    static std::uniform_real_distribution<float> dist(min, max);
+    std::uniform_real_distribution<float> dist(min, max);
     return dist(gen);
 }
