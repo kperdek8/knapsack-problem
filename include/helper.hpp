@@ -3,6 +3,6 @@
 
 #include <string>
 
-std::string to_binary_string(const int value, const unsigned int bits);
+std::string to_binary_string(int value, unsigned int bits);
 
 #endif

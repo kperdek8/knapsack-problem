@@ -44,7 +44,7 @@ for file in "${FILES[@]}"; do
                         # Trzykrotne uruchomienie
                         for run in {1..3}; do
                             echo "Plik: $file | POP_SIZE: $pop | CROSS_CHANCE: $cross | MUTATION_CHANCE: $mut | MAX_GEN: $gen | MAX_NO_IMP: $noimp | Run: $run"
-                            ./$EXE "$file" $pop $cross $mut $gen $noimp
+                            ./$EXE "$file" --pop $pop --cross $cross --mut $mut --gen $gen --no_improve $noimp
                         done
                     done
                 done

@@ -5,6 +5,7 @@
 #include <span>
 #include <vector>
 #include "item.hpp"
+#include "parser.hpp"
 
 namespace io_utils {
 
@@ -20,10 +21,8 @@ namespace io_utils {
 
     // OUTPUT
     void log_results_to_csv(const std::string& filename,
-                            int pop_size, float cross_chance, float mutation_chance,
-                            int max_generations, int max_no_improvement,
-                            int best_fitness, float best_fitness_ratio);
-    void print_population(std::span<int> population, const unsigned int chrom_length);
+                            const ProgramArgs& args, int best_fitness, float best_fitness_ratio);
+    void print_population(std::span<int> population, unsigned int chrom_length);
     void print_population_stats(int options,
         const std::span<int>& pop, int chrom_length, double total_fitness, int best_index, double current_best_fitness
     );
