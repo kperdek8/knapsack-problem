@@ -9,7 +9,7 @@ enum class FitMethod {
   RATIO_PENALTY,
 };
 
-int fitness(const std::span<Item> items, const int chrom, const int max_weight,
+int fitness(std::span<Item> items, int chrom, int max_weight,
             FitMethod method);
 
 #endif

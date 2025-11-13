@@ -4,8 +4,8 @@
 
 enum class CrossoverMethod { ONE_POINT, TWO_POINT, UNIFORM };
 
-std::pair<int, int> crossover(const int parent1, const int parent2,
-                              const unsigned int chrom_length,
+std::pair<int, int> crossover(int parent1, int parent2,
+                              unsigned int chrom_length,
                               CrossoverMethod method);
 
 #endif

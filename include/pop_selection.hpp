@@ -8,8 +8,8 @@ enum class SelectionMethod {
   RANK,
 };
 
-int select(const std::span<int> population,
-                    const std::span<const int> fitness_values,
+int select(std::span<int> population,
+                    std::span<const int> fitness_values,
                     int total_fitness, SelectionMethod method);
 
 #endif
