@@ -1,4 +1,4 @@
-#include "helper.hpp"
+#include "helper.h"
 
 std::string to_binary_string(const int value, const unsigned int bits) {
     std::string result;

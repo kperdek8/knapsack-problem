@@ -1,12 +1,14 @@
-#include "pop_fit.hpp"
+#include "pop_fit.h"
+
+#include <iostream>
 
 // Pierwszy przedmiot = najmłodszy bit (z prawej)
-int fitness(const std::span<Item> items, const int chrom, const int max_weight, FitMethod method) {
-    int total_weight = 0;
-    int total_value = 0;
+uint64_t fitness(const std::span<Item> items, const Chromosome& chrom, const int max_weight, const FitMethod method) {
+    uint64_t total_weight = 0;
+    uint64_t total_value = 0;
 
     for (size_t i = 0; i < items.size(); ++i) {
-        if (chrom & (1ULL << i)) {
+        if (chrom[i]) {
             total_weight += items[i].weight;
             total_value += items[i].value;
         }

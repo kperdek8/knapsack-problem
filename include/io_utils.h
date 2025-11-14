@@ -4,8 +4,9 @@
 #include <string>
 #include <span>
 #include <vector>
-#include "item.hpp"
-#include "parser.hpp"
+#include "item.h"
+#include "parser.h"
+#include "chromosome.h"
 
 namespace io_utils {
 
@@ -21,10 +22,10 @@ namespace io_utils {
 
     // OUTPUT
     void log_results_to_csv(const std::string& filename,
-                            const ProgramArgs& args, int best_fitness, float best_fitness_ratio);
-    void print_population(std::span<int> population, unsigned int chrom_length);
+                            const ProgramArgs& args, uint64_t best_fitness, float best_fitness_ratio);
+    void print_population(std::span<Chromosome> population);
     void print_population_stats(int options,
-        const std::span<int>& pop, int chrom_length, double total_fitness, int best_index, double current_best_fitness
+        const std::span<Chromosome>& pop, uint64_t total_fitness, size_t best_index, uint64_t current_best_fitness
     );
 }
 

@@ -1,5 +1,6 @@
-#include <Parser.hpp>
+#include <Parser.h>
 #include <filesystem>
+#include <helper.h>
 #include <iostream>
 #include <span>
 #include <string>
@@ -7,27 +8,29 @@
 #include <utility>
 #include <vector>
 
-#include "io_utils.hpp"
-#include "item.hpp"
-#include "pop_crossover.hpp"
-#include "pop_fit.hpp"
-#include "pop_init.hpp"
-#include "pop_mutation.hpp"
-#include "pop_selection.hpp"
-#include "rng.hpp"
+#include "io_utils.h"
+#include "item.h"
+#include "pop_crossover.h"
+#include "pop_fit.h"
+#include "pop_init.h"
+#include "pop_mutation.h"
+#include "pop_selection.h"
+#include "chromosome.h"
+#include "rng.h"
 
 // W razie problemu z wydajnością zamiast zwracać fitness_values można przyjąć
 // referencję jako parametr by uniknać kopiowania listy.
-std::tuple<std::vector<int>, int, size_t> population_fitness(const std::span<int> population,
+std::tuple<std::vector<uint64_t>, uint64_t, size_t> population_fitness(const std::span<Chromosome> population,
                                                              const std::span<Item> items,
-                                                             const int max_weight) {
-    int total_fitness = 0;
-    int best_fitness = 0;
+                                                             const int max_weight,
+                                                             const FitMethod method) {
+    uint64_t total_fitness = 0;
+    uint64_t best_fitness = 0;
     size_t best_index = 0;
-    std::vector<int> fitness_values(population.size());
+    std::vector<uint64_t> fitness_values(population.size());
 
     for (size_t i = 0; i < population.size(); ++i) {
-        fitness_values[i] = fitness(items, population[i], max_weight, FitMethod::RATIO_PENALTY);
+        fitness_values[i] = fitness(items, population[i], max_weight, method);
         total_fitness += fitness_values[i];
         if (fitness_values[i] > best_fitness) {
             best_fitness = fitness_values[i];
@@ -40,17 +43,17 @@ std::tuple<std::vector<int>, int, size_t> population_fitness(const std::span<int
 
 int algorithm(const ProgramArgs& args, const std::span<Item> items, const int max_weight,
               int output_mask = 0) {
-    int best_individual_fitness = 0;
+    uint64_t best_individual_fitness = 0;
     int generations_without_improvement = 0;
     const unsigned int item_count = items.size();
     const unsigned int chrom_length = item_count;  // Alias
 
-    std::vector<int> population{};
+    std::vector<Chromosome> population{};
     population.resize(args.pop_size);
-    initialize_population(population, item_count, InitMethod::RANDOM);
+    initialize_population(population, items, item_count, max_weight, args.initialization_method);
 
     // Wektor dla nowej populacji
-    std::vector<int> new_population;
+    std::vector<Chromosome> new_population;
     new_population.resize(args.pop_size);
 
     // Pierwszy warunek stopu: Limit liczby generacji
@@ -59,14 +62,13 @@ int algorithm(const ProgramArgs& args, const std::span<Item> items, const int ma
             std::cout << "Generacja " << generations << std::endl;
         }
         auto [fitness_values, total_fitness, best_index] = population_fitness(
-            population, items, max_weight);  // Wyliczenie przystosowania osobników
+            population, items, max_weight, args.fit_method);  // Wyliczenie przystosowania osobników
 
-        int current_best_fitness =
-            fitness_values[best_index];  // Przystosowanie najlepszego osobnika z
-        // populacji
+        const uint64_t current_best_fitness =
+            fitness_values[best_index];  // Przystosowanie najlepszego osobnika z populacji
 
         if (output_mask) {
-            io_utils::print_population_stats(output_mask, population, chrom_length, total_fitness,
+            io_utils::print_population_stats(output_mask, population, total_fitness,
                                              best_index, current_best_fitness);
         }
 
@@ -81,24 +83,22 @@ int algorithm(const ProgramArgs& args, const std::span<Item> items, const int ma
             break;  // Drugi warunek stopu: brak poprawy najlepszego rozwiązania
 
         for (size_t i = 0; i < args.pop_size; i += 2) {
-            int parent1 =
-                select(population, fitness_values, total_fitness, SelectionMethod::ROULETTE);
-            int parent2 =
-                select(population, fitness_values, total_fitness, SelectionMethod::ROULETTE);
+            Chromosome parent1 =
+                select(population, fitness_values, total_fitness, args.tournament_size, args.selection_method);
+            Chromosome parent2 =
+                select(population, fitness_values, total_fitness, args.tournament_size, args.selection_method);
 
-            // Krzyżowanie jednopunktowe
+            // Krzyżowanie
             auto [children1, children2] =
                 (random_float() < args.cross_chance)
-                    ? crossover(parent1, parent2, chrom_length, CrossoverMethod::ONE_POINT)
+                    ? crossover(parent1, parent2, args.crossover_method)
                     : std::make_pair(parent1, parent2);
 
             // Mutacje
             if (random_float() < args.mutation_chance)
-                children1 =
-                    mutate(children1, chrom_length, args.mutation_method, args.mutate_per_gene);
+                mutate(children1, args.mutation_method, args.mutate_per_gene);
             if (random_float() < args.mutation_chance)
-                children2 =
-                    mutate(children2, chrom_length, args.mutation_method, args.mutate_per_gene);
+                mutate(children2, args.mutation_method, args.mutate_per_gene);
 
             // Dodaj potomków do nowej populacji
             new_population[i] = children1;
@@ -114,7 +114,7 @@ int algorithm(const ProgramArgs& args, const std::span<Item> items, const int ma
 }
 
 int main(int argc, char* argv[]) {
-    ProgramArgs args = Parser::parse(argc, argv);
+    const ProgramArgs args = Parser::parse(argc, argv);
     int debug_mask = io_utils::PRINT_SUMMARY | io_utils::PRINT_SUMMARY | io_utils::PRINT_AVG |
                      // io_utils::PRINT_BEST_CHROM |
                      io_utils::PRINT_BEST_FITNESS;
@@ -129,19 +129,21 @@ int main(int argc, char* argv[]) {
     // Wypisanie do konsoli
     const auto mutation_method =
         args.mutation_method == MutationMethod::BIT_FLIP ? "BIT_FLIP" : "MULTI_BIT_FLIP";
+    const auto selection_method =
+        args.selection_method == SelectionMethod::ROULETTE ? "ROULETTE" : "TOURNAMENT";
 
     if (debug_mask | io_utils::PRINT_SUMMARY) {
         std::cout << "==========================================================" << std::endl;
         std::cout << "POP_SIZE CROSS_CHANCE MUTATION_CHANCE MUTATION_PER_GENE_CHANCE "
-                     "MAX_GENERATIONS MAX_NO_IMPROVEMENT BEST_FIT BEST_FIT_PER"
+                     "MAX_GENERATIONS MAX_NO_IMPROVEMENT MUTATION_METHOD SELECTION_METHOD BEST_FIT BEST_FIT_PER"
                   << std::endl;
         std::cout << args.pop_size << " " << args.cross_chance << " " << args.mutation_chance << " "
                   << args.mutate_per_gene << " " << args.max_generations << " "
-                  << args.max_no_improvement << " " << mutation_method << " " << best_fitness << " "
+                  << args.max_no_improvement << " " << mutation_method << " " << selection_method << " " << best_fitness << " "
                   << static_cast<float>(best_fitness) / optimal_value << std::endl;
         std::cout << "Najlepsze przystosowanie (wszystkie populacje): " << best_fitness
                   << std::endl;
-        std::cout << "Optymalne rozwiazanie: " << optimal_value << std::endl;
+        std::cout << "Optymalne rozwiazanie: " << to_binary_string(optimal_value, items.size()) << std::endl;
         std::cout << "Zblizenie do optymalnego rozwiazania: "
                   << static_cast<float>(best_fitness) / optimal_value << std::endl;
     }

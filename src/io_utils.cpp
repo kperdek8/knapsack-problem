@@ -1,10 +1,10 @@
-#include "io_utils.hpp"
+#include "io_utils.h"
 
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 
-#include "helper.hpp"
+#include "helper.h"
 
 // INPUT
 
@@ -47,28 +47,28 @@ std::vector<Item> io_utils::load_items(const std::string& filename, int& max_wei
 
 // OUTPUT
 
-void io_utils::print_population(std::span<int> population, const unsigned int chrom_length) {
-    for (const int& individual : population) {
-        std::cout << to_binary_string(individual, chrom_length) << " ";
+void io_utils::print_population(const std::span<Chromosome> population) {
+    for (const auto& individual : population) {
+        std::cout << individual.to_string() << " ";
     }
     std::cout << std::endl;
 }
 
-void io_utils::print_population_stats(int options, const std::span<int>& pop, int chrom_length,
-                                      double total_fitness, int best_index,
-                                      double current_best_fitness) {
+void io_utils::print_population_stats(int options, const std::span<Chromosome>& pop,
+                                      uint64_t total_fitness, size_t best_index,
+                                      uint64_t current_best_fitness) {
     if (options & io_utils::PRINT_AVG)
         std::cout << "Srednie przystosowanie nowej populacji: " << total_fitness / pop.size()
                   << "\n";
     if (options & io_utils::PRINT_BEST_CHROM)
-        std::cout << "Najlepszy osobnik: " << to_binary_string(pop[best_index], chrom_length)
+        std::cout << "Najlepszy osobnik: " << pop[best_index].to_string()
                   << "\n";
     if (options & io_utils::PRINT_BEST_FITNESS)
         std::cout << "Najlepsze przystosowanie: " << current_best_fitness << "\n";
 }
 
 void io_utils::log_results_to_csv(const std::string& filename, const ProgramArgs& args,
-                                  int best_fitness, float best_fitness_ratio) {
+                                  uint64_t best_fitness, float best_fitness_ratio) {
     namespace fs = std::filesystem;
 
     bool file_exists = fs::exists(filename);
