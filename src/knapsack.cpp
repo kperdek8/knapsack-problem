@@ -108,6 +108,14 @@ uint64_t algorithm(const ProgramArgs& args, const std::span<Item> items, const i
                     inverse(children2);
             }
 
+            // Naprawianie (jesli wlaczone)
+            if(args.repair_enabled) {
+                if (random_float() < args.repair_chance)
+                    repair(children1, items, max_weight);
+                if (random_float() < args.repair_chance)
+                    repair(children2, items, max_weight);
+            }
+
             // Dodaj potomków do nowej populacji
             new_population[i] = children1;
             if (i + 1 < args.pop_size)
@@ -115,7 +123,7 @@ uint64_t algorithm(const ProgramArgs& args, const std::span<Item> items, const i
         }
 
         // Zamiana populacji
-        population = new_population;
+        population = std::move(new_population);
     }
 
     return best_individual_fitness;
