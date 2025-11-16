@@ -21,13 +21,21 @@ GEN=250
 NO_IMPROVE=20
 MUT_PER_GENE=(0.005 0.01 0.015)
 
+
 for file in "${FILES[@]}"; do
     for method in "${MUTATION_METHODS[@]}"; do
-        for mut_per_gene in "${MUT_PER_GENE[@]}"; do
+        if [ "$method" = "single" ]; then
             for run in {1..100}; do
-                echo "Plik: $file | MUTATION_METHOD: $method | MUT_PER_GENE_CHANCE: $mut_per_gene | Run: $run"
-                ./$EXE --input "$file" --pop $POP --cross $CROSS --mut $MUT --gen $GEN --no_improve $NO_IMPROVE --mutation $method --mut_per_gene $mut_per_gene
+                echo "Plik: $file | MUTATION_METHOD: $method | Run: $run"
+                ./$EXE --input "$file" --pop $POP --cross $CROSS --mut $MUT --gen $GEN --no_improve $NO_IMPROVE --mutation $method
             done
-        done
+        else
+            for mut_per_gene in "${MUT_PER_GENE[@]}"; do
+                for run in {1..100}; do
+                    echo "Plik: $file | MUTATION_METHOD: $method | MUT_PER_GENE_CHANCE: $mut_per_gene | Run: $run"
+                    ./$EXE --input "$file" --pop $POP --cross $CROSS --mut $MUT --gen $GEN --no_improve $NO_IMPROVE --mutation $method --mut_per_gene $mut_per_gene
+                done
+            done
+        fi
     done
 done
