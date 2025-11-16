@@ -1,7 +1,5 @@
 #include "pop_fit.h"
 
-#include <iostream>
-
 // Pierwszy przedmiot = najmłodszy bit (z prawej)
 uint64_t fitness(const std::span<Item> items, const Chromosome& chrom, const int max_weight, const FitMethod method) {
     uint64_t total_weight = 0;
@@ -17,7 +15,6 @@ uint64_t fitness(const std::span<Item> items, const Chromosome& chrom, const int
     if (total_weight > max_weight)
         switch (method) {
             case FitMethod::ZERO_PENALTY:
-                std::cout<<total_weight<<" "<<max_weight<<std::endl;
                 return total_weight > max_weight ? 0 : total_value;
             case FitMethod::RATIO_PENALTY:
                 return total_value * max_weight / total_weight;

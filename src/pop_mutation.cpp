@@ -1,8 +1,6 @@
 #include "pop_mutation.h"
 
 #include <item.h>
-
-#include <iostream>
 #include <stdexcept>
 
 #include "rng.h"
@@ -60,8 +58,6 @@ void inverse(Chromosome& chrom) {
 
 void repair(Chromosome& chrom, const std::span<Item> items, const int max_weight) {
     int total_weight = 0;
-
-    std::cout<<"Naprawianie chromosomu"<<std::endl;
 
     // Obliczenie wagi zakodowanch przedmiotow
     for (size_t i = 0; i < items.size(); ++i) {

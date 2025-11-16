@@ -1,13 +1,17 @@
 #include <Parser.h>
-#include <filesystem>
 #include <helper.h>
+
+#include <algorithm>
+#include <filesystem>
 #include <iostream>
+#include <numeric>
 #include <span>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
 
+#include "chromosome.h"
 #include "io_utils.h"
 #include "item.h"
 #include "pop_crossover.h"
@@ -15,30 +19,61 @@
 #include "pop_init.h"
 #include "pop_mutation.h"
 #include "pop_selection.h"
-#include "chromosome.h"
 #include "rng.h"
 
 // W razie problemu z wydajnością zamiast zwracać fitness_values można przyjąć
 // referencję jako parametr by uniknać kopiowania listy.
-std::tuple<std::vector<uint64_t>, uint64_t, size_t> population_fitness(const std::span<Chromosome> population,
+std::tuple<std::vector<uint64_t>, uint64_t, size_t, std::vector<size_t>> population_fitness(
+                                                             const std::span<Chromosome> population,
                                                              const std::span<Item> items,
                                                              const int max_weight,
-                                                             const FitMethod method) {
-    uint64_t total_fitness = 0;
+                                                             const FitMethod method,
+                                                             size_t elite_count) {
+    const size_t pop_size = population.size();
     uint64_t best_fitness = 0;
     size_t best_index = 0;
+    uint64_t total_fitness = 0;
     std::vector<uint64_t> fitness_values(population.size());
 
+    // Zawsze zwracaj przynajmniej najlepszego osobnika
+    if(elite_count < 0)
+        elite_count = 1;
+
+    // Wyliczenie przystosowania kazdego osobnika
     for (size_t i = 0; i < population.size(); ++i) {
         fitness_values[i] = fitness(items, population[i], max_weight, method);
         total_fitness += fitness_values[i];
+
         if (fitness_values[i] > best_fitness) {
             best_fitness = fitness_values[i];
             best_index = i;
         }
     }
 
-    return {fitness_values, total_fitness, best_index};
+    std::vector<size_t> elite_indices(elite_count);
+    // Wczesny powrot jesli elitaryzm jest wylaczony
+    if(elite_count < 1) {
+        return {std::move(fitness_values), total_fitness, best_index, std::move(elite_indices)};
+    }
+
+    // Wyszukanie elit
+    std::vector<size_t> idx(pop_size);
+    std::iota(idx.begin(), idx.end(), 0);
+
+    // Posortowanie N = {elite_count} najlepszych osobnikow
+    std::ranges::partial_sort(
+        idx.begin(),
+        idx.begin() + elite_count,
+        idx.end(),
+        [&](size_t a, size_t b) {
+            return fitness_values[a] > fitness_values[b]; // Malejaco
+        }
+    );
+
+    for (size_t i = 0; i < elite_count; ++i)
+        elite_indices[i] = idx[i];
+
+    return {std::move(fitness_values), total_fitness, best_index, std::move(elite_indices)};
 }
 
 uint64_t algorithm(const ProgramArgs& args, const std::span<Item> items, const int max_weight,
@@ -60,8 +95,8 @@ uint64_t algorithm(const ProgramArgs& args, const std::span<Item> items, const i
         if (output_mask || io_utils::PRINT_GENERATION) {
             std::cout << "Generacja " << generations << std::endl;
         }
-        auto [fitness_values, total_fitness, best_index] = population_fitness(
-            population, items, max_weight, args.fit_method);  // Wyliczenie przystosowania osobników
+        auto [fitness_values, total_fitness, best_index, best_indices] = population_fitness(
+            population, items, max_weight, args.fit_method, args.elites);  // Wyliczenie przystosowania osobników
 
         const uint64_t current_best_fitness =
             fitness_values[best_index];  // Przystosowanie najlepszego osobnika z populacji
@@ -81,7 +116,9 @@ uint64_t algorithm(const ProgramArgs& args, const std::span<Item> items, const i
         if (generations_without_improvement >= args.max_no_improvement)
             break;  // Drugi warunek stopu: brak poprawy najlepszego rozwiązania
 
-        for (size_t i = 0; i < args.pop_size; i += 2) {
+        std::vector<size_t> elite_indices(args.elites);
+
+        for (size_t i = args.elites; i < args.pop_size; i += 2) {
             Chromosome parent1 =
                 select(population, fitness_values, total_fitness, args.tournament_size, args.selection_method);
             Chromosome parent2 =
@@ -119,6 +156,11 @@ uint64_t algorithm(const ProgramArgs& args, const std::span<Item> items, const i
             new_population[i] = children1;
             if (i + 1 < args.pop_size)
                 new_population[i + 1] = children2;
+        }
+
+        for(int i = 0; i < elite_indices.size(); ++i) {
+            const size_t elite_index = elite_indices[i];
+            new_population[i] = population[elite_index];
         }
 
         // Zamiana populacji

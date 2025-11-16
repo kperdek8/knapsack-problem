@@ -23,6 +23,11 @@ ProgramArgs Parser::parse(int argc, char* argv[]) {
             args.cross_chance = std::atof(argv[++i]);
         else if (arg == "--mut" && i + 1 < argc)
             args.mutation_chance = std::atof(argv[++i]);
+        else if (arg == "--elites" && i + 1 < argc) {
+            args.elites = std::atoi(argv[++i]);
+            if (args.elites > args.pop_size)
+                throw std::invalid_argument("Liczba elit nie moze byc wieksza od populacji");
+        }
         else if (arg == "--inversion" && i + 1 < argc) {
             args.inversion_chance = std::atof(argv[++i]);
             if(args.inversion_chance > 0.0f)
@@ -124,6 +129,7 @@ void Parser::print_help(const std::string& program_name) {
               << "  --inversion <prawdopodobienstwo_inwersji> \n  (domyslnie 0.0)\n"
               << "  --gen <liczba_generacji> \n  (domyslnie 50)\n"
               << "  --no_improve <maks_brak_poprawy> \n  (domyslnie 20)\n"
+              << "  --elites <liczba_elit> \n  (domyslnie 0)\n"
               << "  --mutation single|multi \n  (domyslnie single)\n"
               << "  --selection roulette|tournament \n  (domyslnie roulette)\n"
               << "  --init random|greedy \n  (domyslnie random)\n"

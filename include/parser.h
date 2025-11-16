@@ -19,6 +19,7 @@ struct ProgramArgs {
     float mutation_chance = 0.1f;
     int max_generations = 50;
     int max_no_improvement = 20;
+    int elites = 0;
     float mutate_per_gene = 0.005f;
     int tournament_size = 5;
     bool inversion_enabled = false;
