@@ -1,5 +1,7 @@
 #include "pop_mutation.h"
 
+#include <item.h>
+
 #include <stdexcept>
 
 #include "rng.h"
@@ -34,6 +36,49 @@ void do_multi_bit_flip(Chromosome& chrom, const float per_bit_chance) {
     for (int i = 0; i < chrom.size(); ++i) {
         if (random_float(0.0, 1.0) <= per_bit_chance) {
             chrom.flip(i);
+        }
+    }
+}
+
+void inverse(Chromosome& chrom) {
+    const int offset = random_int(0, chrom.size() - 2);
+    const int end = random_int(offset + 1, chrom.size() - 1);
+
+    int left = offset;
+    int right = end;
+
+    while(left < right) {
+        const bool tmp = chrom[left];
+        chrom.set(left, chrom[right]);
+        chrom.set(right, tmp);
+
+        left++;
+        right--;
+    }
+}
+
+void fix(Chromosome& chrom, const std::span<Item> items, const int max_weight) {
+    int total_weight = 0;
+
+    // Obliczenie wagi zakodowanch przedmiotow
+    for (size_t i = 0; i < items.size(); ++i) {
+        if (chrom[i]) {
+            total_weight += items[i].weight;
+        }
+    }
+
+    // Waga zakodowanych przedmiotow miesci sie w limicie, nie trzeba naprawiac
+    if(total_weight <= max_weight) {
+        return;
+    }
+
+    // Zerowanie kolejnych genow dopóki waga nie spadnie poniżej limitu
+    for(int i = 0; i < chrom.size(); ++i) {
+        if(chrom[i] == true) {
+            chrom.set(i, false);
+            total_weight -= items[i].weight;
+            if (total_weight <= max_weight)
+                return;
         }
     }
 }

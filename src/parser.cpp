@@ -23,6 +23,16 @@ ProgramArgs Parser::parse(int argc, char* argv[]) {
             args.cross_chance = std::atof(argv[++i]);
         else if (arg == "--mut" && i + 1 < argc)
             args.mutation_chance = std::atof(argv[++i]);
+        else if (arg == "--inversion" && i + 1 < argc) {
+            args.inversion_chance = std::atof(argv[++i]);
+            if(args.inversion_chance > 0.0f)
+                args.inversion_enabled = true;
+        }
+        else if (arg == "--repair" && i + 1 < argc) {
+            args.repair_chance = std::atof(argv[++i]);
+            if(args.repair_chance > 0.0f)
+                args.repair_enabled = true;
+        }
         else if (arg == "--gen" && i + 1 < argc)
             args.max_generations = std::atoi(argv[++i]);
         else if (arg == "--no_improve" && i + 1 < argc)
@@ -110,6 +120,8 @@ void Parser::print_help(const std::string& program_name) {
               << "  --pop <rozmiar_populacji> \n  (domyslnie 100)\n"
               << "  --cross <prawdopodobienstwo_krzyzowania> \n  (domyslnie 0.85)\n"
               << "  --mut <prawdopodobienstwo_mutacji> \n  (domyslnie 0.1)\n"
+              << "  --repair <prawdopodobienstwo_naprawy> \n  (domyslnie 0.0)\n"
+              << "  --inversion <prawdopodobienstwo_inwersji> \n  (domyslnie 0.0)\n"
               << "  --gen <liczba_generacji> \n  (domyslnie 50)\n"
               << "  --no_improve <maks_brak_poprawy> \n  (domyslnie 20)\n"
               << "  --mutation single|multi \n  (domyslnie single)\n"

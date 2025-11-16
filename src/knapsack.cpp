@@ -41,7 +41,7 @@ std::tuple<std::vector<uint64_t>, uint64_t, size_t> population_fitness(const std
     return {fitness_values, total_fitness, best_index};
 }
 
-int algorithm(const ProgramArgs& args, const std::span<Item> items, const int max_weight,
+uint64_t algorithm(const ProgramArgs& args, const std::span<Item> items, const int max_weight,
               int output_mask = 0) {
     uint64_t best_individual_fitness = 0;
     int generations_without_improvement = 0;
@@ -100,6 +100,14 @@ int algorithm(const ProgramArgs& args, const std::span<Item> items, const int ma
             if (random_float() < args.mutation_chance)
                 mutate(children2, args.mutation_method, args.mutate_per_gene);
 
+            // Inwersja (jesli wlaczona)
+            if(args.inversion_enabled) {
+                if (random_float() < args.inversion_chance)
+                    inverse(children1);
+                if (random_float() < args.inversion_chance)
+                    inverse(children2);
+            }
+
             // Dodaj potomków do nowej populacji
             new_population[i] = children1;
             if (i + 1 < args.pop_size)
@@ -124,7 +132,7 @@ int main(int argc, char* argv[]) {
     auto items = io_utils::load_items(args.input_file, max_weight, optimal_value);
 
     // Algorytm
-    int best_fitness = algorithm(args, items, max_weight, debug_mask);
+    const uint64_t best_fitness = algorithm(args, items, max_weight, debug_mask);
 
     // Wypisanie do konsoli
     const auto mutation_method =
