@@ -76,19 +76,21 @@ std::tuple<std::vector<uint64_t>, uint64_t, size_t, std::vector<size_t>> populat
     return {std::move(fitness_values), total_fitness, best_index, std::move(elite_indices)};
 }
 
-uint64_t algorithm(const ProgramArgs& args, const std::span<Item> items, const int max_weight,
+std::tuple<uint64_t, std::vector<uint64_t>> algorithm(const ProgramArgs& args, const std::span<Item> items, const int max_weight,
               int output_mask = 0) {
     uint64_t best_individual_fitness = 0;
     int generations_without_improvement = 0;
     const unsigned int item_count = items.size();
+
+    std::vector<uint64_t> average_fitness_history; // średnie przystosowanie w każdej generacji
+    average_fitness_history.reserve(args.max_generations);
 
     std::vector<Chromosome> population{};
     population.resize(args.pop_size);
     initialize_population(population, items, item_count, max_weight, args.initialization_method);
 
     // Wektor dla nowej populacji
-    std::vector<Chromosome> new_population;
-    new_population.resize(args.pop_size);
+    std::vector<Chromosome> new_population(args.pop_size);
 
     // Pierwszy warunek stopu: Limit liczby generacji
     for (int generations = 0; generations < args.max_generations; ++generations) {
@@ -98,8 +100,10 @@ uint64_t algorithm(const ProgramArgs& args, const std::span<Item> items, const i
         auto [fitness_values, total_fitness, best_index, best_indices] = population_fitness(
             population, items, max_weight, args.fit_method, args.elites);  // Wyliczenie przystosowania osobników
 
-        const uint64_t current_best_fitness =
-            fitness_values[best_index];  // Przystosowanie najlepszego osobnika z populacji
+        // Przystosowanie najlepszego osobnika z populacji i srednia populacji
+        const uint64_t current_best_fitness = fitness_values[best_index];
+        const uint64_t average_fitness = total_fitness / population.size();
+        average_fitness_history.push_back(average_fitness);
 
         if (output_mask) {
             io_utils::print_population_stats(output_mask, population, total_fitness,
@@ -168,7 +172,7 @@ uint64_t algorithm(const ProgramArgs& args, const std::span<Item> items, const i
         new_population.resize(args.pop_size);
     }
 
-    return best_individual_fitness;
+    return {best_individual_fitness, std::move(average_fitness_history)};
 }
 
 int main(int argc, char* argv[]) {
@@ -182,7 +186,7 @@ int main(int argc, char* argv[]) {
     auto items = io_utils::load_items(args.input_file, max_weight, optimal_value);
 
     // Algorytm
-    const uint64_t best_fitness = algorithm(args, items, max_weight, debug_mask);
+    auto [best_fitness, average_fitness_history] = algorithm(args, items, max_weight, debug_mask);
 
     // Wypisanie do konsoli
     const auto mutation_method =
@@ -198,12 +202,13 @@ int main(int argc, char* argv[]) {
         std::cout << args.pop_size << " " << args.cross_chance << " " << args.mutation_chance << " "
                   << args.mutate_per_gene << " " << args.max_generations << " "
                   << args.max_no_improvement << " " << mutation_method << " " << selection_method << " " << best_fitness << " "
-                  << static_cast<float>(best_fitness) / optimal_value << std::endl;
-        std::cout << "Najlepsze przystosowanie (wszystkie populacje): " << best_fitness
-                  << std::endl;
-        std::cout << "Optymalne rozwiazanie: " << to_binary_string(optimal_value, items.size()) << std::endl;
+                  << static_cast<float>(best_fitness) / static_cast<float>(optimal_value) << std::endl;
+        //std::cout << "Najlepsze przystosowanie (wszystkie populacje): " << best_fitness << std::endl;
+        //std::cout << "Optymalne rozwiazanie: " << to_binary_string(optimal_value, items.size()) << std::endl;
         std::cout << "Zblizenie do optymalnego rozwiazania: "
-                  << static_cast<float>(best_fitness) / optimal_value << std::endl;
+                  << static_cast<float>(best_fitness) / static_cast<float>(optimal_value) << std::endl;
+        std::cout << "Srednie przystosowanie ostatniej populacji: "
+          << static_cast<float>(average_fitness_history.back()) / static_cast<float>(optimal_value) << std::endl;
     }
 
     // Zapis do pliku .out w formacie csv
@@ -211,7 +216,7 @@ int main(int argc, char* argv[]) {
     out_file.replace_extension(".csv");
 
     io_utils::log_results_to_csv(out_file.string(), args, best_fitness,
-                                 static_cast<float>(best_fitness) / optimal_value);
+                                 static_cast<float>(best_fitness) / static_cast<float>(optimal_value));
 
     return 0;
 }
