@@ -1,22 +1,27 @@
 #include "pop_init.h"
 
 #include <algorithm>
-#include <cmath>
-#include <iostream>
 #include <numeric>
 #include <vector>
 
 #include "rng.h"
 
-void initialize_population(std::span<Chromosome> population, std::span<Item> items,
-                           const unsigned int chrom_length, int max_weight, InitMethod method) {
+void initialize_population(std::span<Chromosome> population, const std::span<Item> items,
+                           const unsigned int chrom_length, const int max_weight, const InitMethod method) {
     switch (method) {
         case InitMethod::RANDOM:
             for (auto& individual : population) {
                 individual = Chromosome::random(chrom_length);
             }
             break;
-
+        case InitMethod::SINGLE_ITEM:
+            for (size_t i = 0; i < population.size(); ++i) {
+                population[i] = Chromosome(chrom_length);
+                // n-ty osobnik dostaje n-ty przedmiot, zapetlone w przypadku pop > items
+                const size_t index = i % chrom_length;
+                population[i].set(index, true);
+            }
+            break;
         case InitMethod::GREEDY:
             std::vector<int> indices(chrom_length);
             std::iota(indices.begin(), indices.end(), 0);

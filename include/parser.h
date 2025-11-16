@@ -24,7 +24,7 @@ struct ProgramArgs {
     int tournament_size = 5;
     bool inversion_enabled = false;
     bool repair_enabled = false;
-    InitMethod initialization_method = InitMethod::RANDOM;
+    InitMethod initialization_method = InitMethod::SINGLE_ITEM;
     FitMethod fit_method = FitMethod::RATIO_PENALTY;
     CrossoverMethod crossover_method = CrossoverMethod::ONE_POINT;
     MutationMethod mutation_method = MutationMethod::BIT_FLIP;

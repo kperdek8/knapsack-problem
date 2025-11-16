@@ -70,6 +70,8 @@ ProgramArgs Parser::parse(int argc, char* argv[]) {
             std::string method = argv[++i];
             if (method == "random")
                 args.initialization_method = InitMethod::RANDOM;
+            else if (method == "single_item")
+                args.initialization_method = InitMethod::SINGLE_ITEM;
             else if (method == "greedy")
                 args.initialization_method = InitMethod::GREEDY;
             else {
@@ -132,7 +134,7 @@ void Parser::print_help(const std::string& program_name) {
               << "  --elites <liczba_elit> \n  (domyslnie 0)\n"
               << "  --mutation single|multi \n  (domyslnie single)\n"
               << "  --selection roulette|tournament \n  (domyslnie roulette)\n"
-              << "  --init random|greedy \n  (domyslnie random)\n"
+              << "  --init random|single_item|greedy \n  (domyslnie single_item)\n"
               << "  --cross_method one|two \n  (domyslnie one)\n"
               << "  --fit zero|ratio \n  (domyslnie ratio)\n"
               << "  --mut_per_gene <prawdopodobienstwo_mutacji> | Wymaga metody --mutate multi\n "
