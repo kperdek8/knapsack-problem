@@ -18,13 +18,13 @@ CROSS=0.8
 MUT=0.1
 GEN=250
 NO_IMPROVE=20
-REPAIR_CHANCES=(0.0 0.05 0.1 0.2)
+INVERSION_CHANCES=(0.0 0.05 0.1 0.2)
 
 for file in "${FILES[@]}"; do
-    for rep in "${REPAIR_CHANCES[@]}"; do
+    for inv in "${INVERSION_CHANCES[@]}"; do
         for run in {1..100}; do
-            echo "Plik: $file | REPAIR_CHANCE: $rep | Run: $run"
-            ./$EXE --input "$file" --pop $POP --cross $CROSS --mut $MUT --gen $GEN --no_improve $NO_IMPROVE --repair $rep
+            echo "Plik: $file | INV_CHANCE: $inv | Run: $run"
+            ./$EXE --input "$file" --pop $POP --cross $CROSS --mut $MUT --gen $GEN --no_improve $NO_IMPROVE --inversion $inv
         done
     done
 done
