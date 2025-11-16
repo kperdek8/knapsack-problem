@@ -16,7 +16,7 @@ std::pair<Chromosome, Chromosome> crossover(const Chromosome& parent1, const Chr
         case CrossoverMethod::ONE_POINT:
             return do_one_point(parent1, parent2);
         case CrossoverMethod::TWO_POINT:
-            throw std::logic_error("Metoda krzyzowania TWO_POINT nie jest zaimplementowana");
+            return do_two_point(parent1, parent2);
         case CrossoverMethod::UNIFORM:
             throw std::logic_error("Metoda krzyzowania UNIFORM nie jest zaimplementowana");
     }
