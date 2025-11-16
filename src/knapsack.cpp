@@ -46,7 +46,6 @@ uint64_t algorithm(const ProgramArgs& args, const std::span<Item> items, const i
     uint64_t best_individual_fitness = 0;
     int generations_without_improvement = 0;
     const unsigned int item_count = items.size();
-    const unsigned int chrom_length = item_count;  // Alias
 
     std::vector<Chromosome> population{};
     population.resize(args.pop_size);
@@ -123,7 +122,8 @@ uint64_t algorithm(const ProgramArgs& args, const std::span<Item> items, const i
         }
 
         // Zamiana populacji
-        population = std::move(new_population);
+        population.swap(new_population);
+        new_population.resize(args.pop_size);
     }
 
     return best_individual_fitness;
