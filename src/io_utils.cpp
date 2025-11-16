@@ -80,16 +80,34 @@ void io_utils::log_results_to_csv(const std::string& filename, const ProgramArgs
     }
 
     if (!file_exists) {
-        file << "POP_SIZE,CROSS_CHANCE,MUTATION_CHANCE,PER_GENE_MUTATION_CHANCE,MAX_GENERATIONS,"
-                "MAX_NO_IMPROVEMENT,MUTATION_METHOD,BEST_FIT,BEST_FIT_PER\n";
+        file << "POP_SIZE,CROSS_CHANCE,MUTATION_CHANCE,PER_GENE_MUTATION_CHANCE,INVERSION_CHANCE,REPAIR_CHANCE,MAX_GENERATIONS,"
+                "MAX_NO_IMPROVEMENT,ELITES,TOURNAMENT_SIZE,INITIALIZATION_METHOD,FIT_METHOD,CROSSOVER_METHOD,SELECTION_METHOD,MUTATION_METHOD,BEST_FIT,BEST_FIT_PER\n";
     }
 
-    const auto mutation_method =
-        args.mutation_method == MutationMethod::BIT_FLIP ? "BIT_FLIP" : "MULTI_BIT_FLIP";
+    const auto mutation_method = to_string(args.mutation_method);
+    const auto initialization_method = to_string(args.initialization_method);
+    const auto fit_method = to_string(args.fit_method);
+    const auto crossover_method = to_string(args.crossover_method);
+    const auto selection_method = to_string(args.selection_method);
 
-    file << args.pop_size << "," << args.cross_chance << "," << args.mutation_chance << ","
-         << args.mutate_per_gene << "," << args.max_generations << "," << args.max_no_improvement
-         << "," << mutation_method << "," << best_fitness << "," << best_fitness_ratio << "\n";
+
+    file << args.pop_size << ","
+    << args.cross_chance << ","
+    << args.mutation_chance << ","
+    << args.mutate_per_gene << ","
+    << args.inversion_chance << ","
+    << args.repair_chance << ","
+    << args.max_generations << ","
+    << args.max_no_improvement << ","
+    << args.elites << ","
+    << args.tournament_size << ","
+    << initialization_method << ","
+    << fit_method << ","
+    << crossover_method << ","
+    << selection_method << ","
+    << mutation_method << ","
+    << best_fitness << ","
+    << best_fitness_ratio << "\n";
 
     file.close();
 }
