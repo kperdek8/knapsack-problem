@@ -68,7 +68,7 @@ void io_utils::print_population_stats(int options, const std::span<Chromosome>& 
 }
 
 void io_utils::log_results_to_csv(const std::string& filename, const ProgramArgs& args,
-                                  uint64_t best_fitness, float best_fitness_ratio) {
+                                  uint64_t best_fitness, float best_fitness_ratio, float avg_population_fitness_ratio) {
     namespace fs = std::filesystem;
 
     bool file_exists = fs::exists(filename);
@@ -81,7 +81,7 @@ void io_utils::log_results_to_csv(const std::string& filename, const ProgramArgs
 
     if (!file_exists) {
         file << "POP_SIZE,CROSS_CHANCE,MUTATION_CHANCE,PER_GENE_MUTATION_CHANCE,INVERSION_CHANCE,REPAIR_CHANCE,MAX_GENERATIONS,"
-                "MAX_NO_IMPROVEMENT,ELITES,TOURNAMENT_SIZE,INITIALIZATION_METHOD,FIT_METHOD,CROSSOVER_METHOD,SELECTION_METHOD,MUTATION_METHOD,BEST_FIT,BEST_FIT_PER\n";
+                "MAX_NO_IMPROVEMENT,ELITES,TOURNAMENT_SIZE,INITIALIZATION_METHOD,FIT_METHOD,CROSSOVER_METHOD,SELECTION_METHOD,MUTATION_METHOD,AVG_POP_FIT,BEST_FIT,BEST_FIT_PER\n";
     }
 
     const auto mutation_method = to_string(args.mutation_method);
@@ -106,6 +106,7 @@ void io_utils::log_results_to_csv(const std::string& filename, const ProgramArgs
     << crossover_method << ","
     << selection_method << ","
     << mutation_method << ","
+    << avg_population_fitness_ratio << ","
     << best_fitness << ","
     << best_fitness_ratio << "\n";
 

@@ -17,6 +17,8 @@ ProgramArgs Parser::parse(int argc, char* argv[]) {
 
         if (arg == "--input" && i + 1 < argc)
             args.input_file = argv[++i];
+        else if (arg == "--debug")
+            args.debug_output = true;
         else if (arg == "--pop" && i + 1 < argc)
             args.pop_size = std::atoi(argv[++i]);
         else if (arg == "--cross" && i + 1 < argc)
@@ -136,7 +138,7 @@ void Parser::print_help(const std::string& program_name) {
               << "  --selection roulette|tournament \n  (domyslnie roulette)\n"
               << "  --init random|single_item|greedy \n  (domyslnie single_item)\n"
               << "  --cross_method one|two \n  (domyslnie one)\n"
-              << "  --fit zero|ratio \n  (domyslnie ratio)\n"
+              << "  --fit zero|ratio \n  (domyslnie zero)\n"
               << "  --mut_per_gene <prawdopodobienstwo_mutacji> | Wymaga metody --mutate multi\n "
                  "(domyslnie 0.005)\n"
               << "  --tournament_size <rozmiar turnieju> | Wymaga metody --selection tournament \n "

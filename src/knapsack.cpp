@@ -94,9 +94,9 @@ std::tuple<uint64_t, std::vector<uint64_t>> algorithm(const ProgramArgs& args, c
 
     // Pierwszy warunek stopu: Limit liczby generacji
     for (int generations = 0; generations < args.max_generations; ++generations) {
-        if (output_mask || io_utils::PRINT_GENERATION) {
+        if (output_mask & io_utils::PRINT_GENERATION)
             std::cout << "Generacja " << generations << std::endl;
-        }
+
         auto [fitness_values, total_fitness, best_index, best_indices] = population_fitness(
             population, items, max_weight, args.fit_method, args.elites);  // Wyliczenie przystosowania osobników
 
@@ -177,9 +177,16 @@ std::tuple<uint64_t, std::vector<uint64_t>> algorithm(const ProgramArgs& args, c
 
 int main(int argc, char* argv[]) {
     const ProgramArgs args = Parser::parse(argc, argv);
-    int debug_mask = io_utils::PRINT_SUMMARY | io_utils::PRINT_SUMMARY | io_utils::PRINT_AVG |
-                     // io_utils::PRINT_BEST_CHROM |
-                     io_utils::PRINT_BEST_FITNESS;
+
+    int debug_mask = io_utils::PRINT_SUMMARY
+        //| io_utils::PRINT_GENERATION
+        //| io_utils::PRINT_AVG
+        //| io_utils::PRINT_BEST_CHROM
+        | io_utils::PRINT_FINAL_BEST_CHROM
+        //| io_utils::PRINT_BEST_FITNESS
+        | io_utils::PRINT_FINAL_BEST_FITNESS;
+    if(args.debug_output == false)
+        debug_mask = 0;
 
     // Wczytanie danych
     int max_weight, optimal_value;
@@ -188,13 +195,16 @@ int main(int argc, char* argv[]) {
     // Algorytm
     auto [best_fitness, average_fitness_history] = algorithm(args, items, max_weight, debug_mask);
 
+    const auto population_fit_ratio = static_cast<float>(average_fitness_history.back()) / static_cast<float>(optimal_value);
+    const auto best_fit_ratio = static_cast<float>(best_fitness) / static_cast<float>(optimal_value);
+
     // Wypisanie do konsoli
     const auto mutation_method =
         args.mutation_method == MutationMethod::BIT_FLIP ? "BIT_FLIP" : "MULTI_BIT_FLIP";
     const auto selection_method =
         args.selection_method == SelectionMethod::ROULETTE ? "ROULETTE" : "TOURNAMENT";
 
-    if (debug_mask | io_utils::PRINT_SUMMARY) {
+    if (debug_mask & io_utils::PRINT_SUMMARY) {
         std::cout << "==========================================================" << std::endl;
         std::cout << "POP_SIZE CROSS_CHANCE MUTATION_CHANCE MUTATION_PER_GENE_CHANCE "
                      "MAX_GENERATIONS MAX_NO_IMPROVEMENT MUTATION_METHOD SELECTION_METHOD BEST_FIT BEST_FIT_PER"
@@ -203,20 +213,21 @@ int main(int argc, char* argv[]) {
                   << args.mutate_per_gene << " " << args.max_generations << " "
                   << args.max_no_improvement << " " << mutation_method << " " << selection_method << " " << best_fitness << " "
                   << static_cast<float>(best_fitness) / static_cast<float>(optimal_value) << std::endl;
-        //std::cout << "Najlepsze przystosowanie (wszystkie populacje): " << best_fitness << std::endl;
-        //std::cout << "Optymalne rozwiazanie: " << to_binary_string(optimal_value, items.size()) << std::endl;
+        if(debug_mask & io_utils::PRINT_BEST_FITNESS)
+            std::cout << "Najlepsze przystosowanie (wszystkie populacje): " << best_fitness << std::endl;
+        if(debug_mask & io_utils::PRINT_BEST_CHROM)
+            std::cout << "Optymalne rozwiazanie: " << to_binary_string(optimal_value, items.size()) << std::endl;
         std::cout << "Zblizenie do optymalnego rozwiazania: "
-                  << static_cast<float>(best_fitness) / static_cast<float>(optimal_value) << std::endl;
+                  << best_fit_ratio << std::endl;
         std::cout << "Srednie przystosowanie ostatniej populacji: "
-          << static_cast<float>(average_fitness_history.back()) / static_cast<float>(optimal_value) << std::endl;
+          << population_fit_ratio << std::endl;
     }
 
     // Zapis do pliku .out w formacie csv
     std::filesystem::path out_file = args.input_file;
     out_file.replace_extension(".csv");
 
-    io_utils::log_results_to_csv(out_file.string(), args, best_fitness,
-                                 static_cast<float>(best_fitness) / static_cast<float>(optimal_value));
+    io_utils::log_results_to_csv(out_file.string(), args, best_fitness, best_fit_ratio, population_fit_ratio);
 
     return 0;
 }
