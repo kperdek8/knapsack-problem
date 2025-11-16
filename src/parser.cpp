@@ -84,9 +84,9 @@ ProgramArgs Parser::parse(int argc, char* argv[]) {
         else if (arg == "--cross_method" && i + 1 < argc) {
             std::string method = argv[++i];
             if (method == "one")
-                args.initialization_method = InitMethod::RANDOM;
+                args.crossover_method = CrossoverMethod::ONE_POINT;
             else if (method == "two")
-                args.initialization_method = InitMethod::GREEDY;
+                args.crossover_method = CrossoverMethod::TWO_POINT;
             else {
                 std::cerr << "Nieznana metoda inicjalizacji: " << method << "\n";
                 std::exit(1);
