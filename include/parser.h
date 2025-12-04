@@ -10,8 +10,14 @@
 #include "pop_mutation.h"
 #include "pop_selection.h"
 
+enum class AlgorithmMode {
+  GA,
+  ACO
+};
+
 struct ProgramArgs {
     std::string input_file;
+    AlgorithmMode mode = AlgorithmMode::GA;
     int pop_size = 100;
     float cross_chance = 0.85f;
     float inversion_chance = 0.05f;
@@ -34,10 +40,10 @@ struct ProgramArgs {
 
 class Parser {
    public:
-    static ProgramArgs parse(int argc, char* argv[]);
+    static ProgramArgs parse(int argc, char* argv[], AlgorithmMode mode = AlgorithmMode::GA);
 
    private:
-    static void print_help(const std::string& program_name);
+    static void print_help(const std::string& program_name, AlgorithmMode mode);
 };
 
 #endif

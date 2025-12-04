@@ -2,7 +2,8 @@
 
 SRC_DIR=$(pwd)
 BUILD_DIR="$SRC_DIR/build"
-EXE="knapsack"
+
+EXES=("knapsack" "knapsack_ant")
 
 echo ">>> Configuring and building with CMake..."
 mkdir -p "$BUILD_DIR"
@@ -12,5 +13,16 @@ cmake -DCMAKE_BUILD_TYPE=Release "$SRC_DIR" || { echo "CMake configuration faile
 
 cmake --build . || { echo "Build failed"; exit 1; }
 
-cp "$BUILD_DIR/$EXE" "$SRC_DIR/" || { echo "Failed to copy executable"; exit 1; }
+echo ">>> Copying executables..."
+
 cd "$SRC_DIR" || exit 1
+
+for exe in "${EXES[@]}"; do
+    if [[ -f "$BUILD_DIR/$exe" ]]; then
+        cp "$BUILD_DIR/$exe" "$SRC_DIR/" && echo "Copied $exe"
+    else
+        echo "Warning: Executable $exe not found in build folder"
+    fi
+done
+
+echo ">>> Done."

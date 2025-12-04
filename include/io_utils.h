@@ -9,7 +9,6 @@
 #include "chromosome.h"
 
 namespace io_utils {
-
     enum PopulationOptions {
         PRINT_AVG = 1 << 0,
         PRINT_BEST_CHROM = 1 << 1,
@@ -29,6 +28,7 @@ namespace io_utils {
     void print_population_stats(int options,
         const std::span<Chromosome>& pop, uint64_t total_fitness, size_t best_index, uint64_t current_best_fitness
     );
+
 }
 
 #endif

@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -static-libgcc -static-libstdc++")
 
 add_executable(knapsack
-               src/knapsack.cpp
+        src/knapsack_genetic.cpp
                src/helper.cpp
                src/rng.cpp
                src/io_utils.cpp
@@ -19,6 +19,21 @@ add_executable(knapsack
 )
 
 target_include_directories(knapsack
+        PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+)
+
+add_executable(knapsack_ant
+        src/knapsack_ant.cpp
+        src/helper.cpp
+        src/rng.cpp
+        src/io_utils.cpp
+        src/pop_init.cpp
+        src/pop_fit.cpp
+        src/parser.cpp
+)
+
+target_include_directories(knapsack_ant
     PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )

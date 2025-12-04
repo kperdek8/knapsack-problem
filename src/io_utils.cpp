@@ -54,9 +54,9 @@ void io_utils::print_population(const std::span<Chromosome> population) {
     std::cout << std::endl;
 }
 
-void io_utils::print_population_stats(int options, const std::span<Chromosome>& pop,
-                                      uint64_t total_fitness, size_t best_index,
-                                      uint64_t current_best_fitness) {
+void io_utils::print_population_stats(const int options, const std::span<Chromosome>& pop,
+                                      const uint64_t total_fitness, const size_t best_index,
+                                      const uint64_t current_best_fitness) {
     if (options & io_utils::PRINT_AVG)
         std::cout << "Srednie przystosowanie nowej populacji: " << total_fitness / pop.size()
                   << "\n";
@@ -68,9 +68,9 @@ void io_utils::print_population_stats(int options, const std::span<Chromosome>& 
 }
 
 void io_utils::log_results_to_csv(const std::string& filename, const ProgramArgs& args,
-                                  uint64_t best_fitness, float best_fitness_ratio, float avg_population_fitness_ratio) {
+                                  const uint64_t best_fitness, const float best_fitness_ratio,
+                                  const float avg_population_fitness_ratio) {
     namespace fs = std::filesystem;
-
     bool file_exists = fs::exists(filename);
 
     std::ofstream file(filename, std::ios::app);  // append mode
@@ -80,7 +80,7 @@ void io_utils::log_results_to_csv(const std::string& filename, const ProgramArgs
     }
 
     if (!file_exists) {
-        file << "POP_SIZE,CROSS_CHANCE,MUTATION_CHANCE,PER_GENE_MUTATION_CHANCE,INVERSION_CHANCE,REPAIR_CHANCE,MAX_GENERATIONS,"
+        file << "MODE,POP_SIZE,CROSS_CHANCE,MUTATION_CHANCE,PER_GENE_MUTATION_CHANCE,INVERSION_CHANCE,REPAIR_CHANCE,MAX_GENERATIONS,"
                 "MAX_NO_IMPROVEMENT,ELITES,TOURNAMENT_SIZE,INITIALIZATION_METHOD,FIT_METHOD,CROSSOVER_METHOD,SELECTION_METHOD,MUTATION_METHOD,AVG_POP_FIT,BEST_FIT,BEST_FIT_PER\n";
     }
 
@@ -90,25 +90,48 @@ void io_utils::log_results_to_csv(const std::string& filename, const ProgramArgs
     const auto crossover_method = to_string(args.crossover_method);
     const auto selection_method = to_string(args.selection_method);
 
-
-    file << args.pop_size << ","
-    << args.cross_chance << ","
-    << args.mutation_chance << ","
-    << args.mutate_per_gene << ","
-    << args.inversion_chance << ","
-    << args.repair_chance << ","
-    << args.max_generations << ","
-    << args.max_no_improvement << ","
-    << args.elites << ","
-    << args.tournament_size << ","
-    << initialization_method << ","
-    << fit_method << ","
-    << crossover_method << ","
-    << selection_method << ","
-    << mutation_method << ","
-    << avg_population_fitness_ratio << ","
-    << best_fitness << ","
-    << best_fitness_ratio << "\n";
+    if(args.mode == AlgorithmMode::GA) {
+        file << "GENETIC" << ","
+        << args.pop_size << ","
+        << args.cross_chance << ","
+        << args.mutation_chance << ","
+        << args.mutate_per_gene << ","
+        << args.inversion_chance << ","
+        << args.repair_chance << ","
+        << args.max_generations << ","
+        << args.max_no_improvement << ","
+        << args.elites << ","
+        << args.tournament_size << ","
+        << initialization_method << ","
+        << fit_method << ","
+        << crossover_method << ","
+        << selection_method << ","
+        << mutation_method << ","
+        << avg_population_fitness_ratio << ","
+        << best_fitness << ","
+        << best_fitness_ratio << "\n";
+    }
+    else {
+        file << "ACO" << ","
+        << args.pop_size << ","
+        << "N/A" << ","
+        << "N/A" << ","
+        << "N/A" << ","
+        << "N/A" << ","
+        << "N/A" << ","
+        << args.max_generations << ","
+        << args.max_no_improvement << ","
+        << "N/A" << ","
+        << "N/A" << ","
+        << initialization_method << ","
+        << fit_method << ","
+        << "N/A" << ","
+        << "N/A" << ","
+        << "N/A" << ","
+        << avg_population_fitness_ratio << ","
+        << best_fitness << ","
+        << best_fitness_ratio << "\n";
+    }
 
     file.close();
 }

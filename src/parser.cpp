@@ -4,11 +4,11 @@
 #include <pop_selection.h>
 #include <iostream>
 
-ProgramArgs Parser::parse(int argc, char* argv[]) {
+ProgramArgs Parser::parse(int argc, char* argv[], AlgorithmMode mode) {
     ProgramArgs args;
 
     if (argc < 2) {
-        print_help(argv[0]);
+        print_help(argv[0], mode);
         std::exit(1);
     }
 
@@ -105,11 +105,11 @@ ProgramArgs Parser::parse(int argc, char* argv[]) {
             }
         }
         else if (arg == "--help" || arg == "-h") {
-            print_help(argv[0]);
+            print_help(argv[0], mode);
             std::exit(0);
         } else {
             std::cerr << "Nieznana flaga: " << arg << "\n";
-            print_help(argv[0]);
+            print_help(argv[0], mode);
             std::exit(1);
         }
     }
@@ -122,7 +122,8 @@ ProgramArgs Parser::parse(int argc, char* argv[]) {
     return args;
 }
 
-void Parser::print_help(const std::string& program_name) {
+void Parser::print_help(const std::string& program_name, const AlgorithmMode mode) {
+    if (mode == AlgorithmMode::GA) {
     std::cerr << "Użycie:\n"
               << "  " << program_name << " --input <plik_wejsciowy> [opcje]\n\n"
               << "Opcje:\n"
@@ -145,4 +146,5 @@ void Parser::print_help(const std::string& program_name) {
                  " (domyslnie 5)\n"
               << "  --help (wyswietla ten komunikat)  \n"
               << std::endl;
+    }
 }

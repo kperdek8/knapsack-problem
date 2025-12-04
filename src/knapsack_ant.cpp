@@ -14,11 +14,8 @@
 #include "chromosome.h"
 #include "io_utils.h"
 #include "item.h"
-#include "pop_crossover.h"
 #include "pop_fit.h"
 #include "pop_init.h"
-#include "pop_mutation.h"
-#include "pop_selection.h"
 #include "rng.h"
 
 // W razie problemu z wydajnością zamiast zwracać fitness_values można przyjąć
@@ -119,64 +116,13 @@ std::tuple<uint64_t, std::vector<uint64_t>> algorithm(const ProgramArgs& args, c
 
         if (generations_without_improvement >= args.max_no_improvement)
             break;  // Drugi warunek stopu: brak poprawy najlepszego rozwiązania
-
-        std::vector<size_t> elite_indices(args.elites);
-
-        for (size_t i = args.elites; i < args.pop_size; i += 2) {
-            Chromosome parent1 =
-                select(population, fitness_values, total_fitness, args.tournament_size, args.selection_method);
-            Chromosome parent2 =
-                select(population, fitness_values, total_fitness, args.tournament_size, args.selection_method);
-
-            // Krzyżowanie
-            auto [children1, children2] =
-                (random_float() < args.cross_chance)
-                    ? crossover(parent1, parent2, args.crossover_method)
-                    : std::make_pair(parent1, parent2);
-
-            // Mutacje
-            if (random_float() < args.mutation_chance)
-                mutate(children1, args.mutation_method, args.mutate_per_gene);
-            if (random_float() < args.mutation_chance)
-                mutate(children2, args.mutation_method, args.mutate_per_gene);
-
-            // Inwersja (jesli wlaczona)
-            if(args.inversion_enabled) {
-                if (random_float() < args.inversion_chance)
-                    inverse(children1);
-                if (random_float() < args.inversion_chance)
-                    inverse(children2);
-            }
-
-            // Naprawianie (jesli wlaczone)
-            if(args.repair_enabled) {
-                if (random_float() < args.repair_chance)
-                    repair(children1, items, max_weight);
-                if (random_float() < args.repair_chance)
-                    repair(children2, items, max_weight);
-            }
-
-            // Dodaj potomków do nowej populacji
-            new_population[i] = children1;
-            if (i + 1 < args.pop_size)
-                new_population[i + 1] = children2;
-        }
-
-        for(int i = 0; i < elite_indices.size(); ++i) {
-            const size_t elite_index = elite_indices[i];
-            new_population[i] = population[elite_index];
-        }
-
-        // Zamiana populacji
-        population.swap(new_population);
-        new_population.resize(args.pop_size);
     }
 
     return {best_individual_fitness, std::move(average_fitness_history)};
 }
 
 int main(int argc, char* argv[]) {
-    const ProgramArgs args = Parser::parse(argc, argv);
+    const ProgramArgs args = Parser::parse(argc, argv, AlgorithmMode::ACO);
 
     int debug_mask = io_utils::PRINT_SUMMARY
         //| io_utils::PRINT_GENERATION
