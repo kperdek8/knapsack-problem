@@ -6,6 +6,7 @@
 
 ProgramArgs Parser::parse(int argc, char* argv[], AlgorithmMode mode) {
     ProgramArgs args;
+    args.mode = mode;
 
     if (argc < 2) {
         print_help(argv[0], mode);
@@ -104,6 +105,16 @@ ProgramArgs Parser::parse(int argc, char* argv[], AlgorithmMode mode) {
                 std::exit(1);
             }
         }
+        else if (arg == "--pheromone_influence" && i + 1 < argc)
+            args.pheromone_influence = std::atof(argv[++i]);
+        else if (arg == "--heuristic_influence" && i + 1 < argc)
+            args.heuristic_influence = std::atof(argv[++i]);
+        else if (arg == "--evaporation_rate" && i + 1 < argc)
+            args.evaporation_rate = std::atof(argv[++i]);
+        else if (arg == "--pheromone_init" && i + 1 < argc)
+            args.pheromone_init = std::atof(argv[++i]);
+        else if (arg == "--reinforcement_constant" && i + 1 < argc)
+            args.reinforcement_constant = std::atof(argv[++i]);
         else if (arg == "--help" || arg == "-h") {
             print_help(argv[0], mode);
             std::exit(0);
@@ -124,27 +135,45 @@ ProgramArgs Parser::parse(int argc, char* argv[], AlgorithmMode mode) {
 
 void Parser::print_help(const std::string& program_name, const AlgorithmMode mode) {
     if (mode == AlgorithmMode::GA) {
-    std::cerr << "Użycie:\n"
-              << "  " << program_name << " --input <plik_wejsciowy> [opcje]\n\n"
-              << "Opcje:\n"
-              << "  --pop <rozmiar_populacji> \n  (domyslnie 100)\n"
-              << "  --cross <prawdopodobienstwo_krzyzowania> \n  (domyslnie 0.85)\n"
-              << "  --mut <prawdopodobienstwo_mutacji> \n  (domyslnie 0.1)\n"
-              << "  --repair <prawdopodobienstwo_naprawy> \n  (domyslnie 0.0)\n"
-              << "  --inversion <prawdopodobienstwo_inwersji> \n  (domyslnie 0.0)\n"
-              << "  --gen <liczba_generacji> \n  (domyslnie 50)\n"
-              << "  --no_improve <maks_brak_poprawy> \n  (domyslnie 20)\n"
-              << "  --elites <liczba_elit> \n  (domyslnie 0)\n"
-              << "  --mutation single|multi \n  (domyslnie single)\n"
-              << "  --selection roulette|tournament \n  (domyslnie roulette)\n"
-              << "  --init random|single_item|greedy \n  (domyslnie single_item)\n"
-              << "  --cross_method one|two \n  (domyslnie one)\n"
-              << "  --fit zero|ratio \n  (domyslnie zero)\n"
-              << "  --mut_per_gene <prawdopodobienstwo_mutacji> | Wymaga metody --mutate multi\n "
-                 "(domyslnie 0.005)\n"
-              << "  --tournament_size <rozmiar turnieju> | Wymaga metody --selection tournament \n "
-                 " (domyslnie 5)\n"
-              << "  --help (wyswietla ten komunikat)  \n"
-              << std::endl;
+        std::cerr << "Użycie:\n"
+                  << "  " << program_name << " --input <plik_wejsciowy> [opcje]\n\n"
+                  << "Opcje:\n"
+                  << "  --pop <rozmiar_populacji> \n  (domyslnie 100)\n"
+                  << "  --cross <prawdopodobienstwo_krzyzowania> \n  (domyslnie 0.85)\n"
+                  << "  --mut <prawdopodobienstwo_mutacji> \n  (domyslnie 0.1)\n"
+                  << "  --repair <prawdopodobienstwo_naprawy> \n  (domyslnie 0.0)\n"
+                  << "  --inversion <prawdopodobienstwo_inwersji> \n  (domyslnie 0.0)\n"
+                  << "  --gen <liczba_generacji> \n  (domyslnie 50)\n"
+                  << "  --no_improve <maks_brak_poprawy> \n  (domyslnie 20)\n"
+                  << "  --elites <liczba_elit> \n  (domyslnie 0)\n"
+                  << "  --mutation single|multi \n  (domyslnie single)\n"
+                  << "  --selection roulette|tournament \n  (domyslnie roulette)\n"
+                  << "  --init random|single_item|greedy \n  (domyslnie single_item)\n"
+                  << "  --cross_method one|two \n  (domyslnie one)\n"
+                  << "  --fit zero|ratio \n  (domyslnie zero)\n"
+                  << "  --mut_per_gene <prawdopodobienstwo_mutacji> | Wymaga metody --mutate multi\n "
+                     "(domyslnie 0.005)\n"
+                  << "  --tournament_size <rozmiar turnieju> | Wymaga metody --selection tournament \n "
+                     " (domyslnie 5)\n"
+                  << "  --help (wyswietla ten komunikat)  \n"
+                  << std::endl;
+    }
+
+    if (mode == AlgorithmMode::ACO) {
+        std::cerr << "Użycie:\n"
+                  << "  " << program_name << " --input <plik_wejsciowy> [opcje]\n\n"
+                  << "Opcje:\n"
+                  << "  --pop <rozmiar_populacji> \n  (domyslnie 100)\n"
+                  << "  --gen <liczba_generacji> \n  (domyslnie 50)\n"
+                  << "  --no_improve <maks_brak_poprawy> \n  (domyslnie 20)\n"
+                  << "  --init random|single_item|greedy \n  (domyslnie single_item)\n"
+                  << "  --fit zero|ratio \n  (domyslnie zero)\n"
+                  << "  --pheromone_influence <wplyw feromonu> \n  (domyslnie 1.0)\n"
+                  << "  --heuristic_influence <wplyw heurystyki> \n  (domyslnie 1.0)\n"
+                  << "  --evaporation_rate <wspolczynnik parowania> \n  (domyslnie 0.1)\n"
+                  << "  --pheromone_init <domyslna wartosc feromonu> \n  (domyslnie 0.1)\n"
+                  << "  --reinforcement_constant <stala wzmocnienia> \n  (domyslnie 1.0)\n"
+                  << "  --help (wyswietla ten komunikat)  \n"
+                  << std::endl;
     }
 }

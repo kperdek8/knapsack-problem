@@ -54,6 +54,17 @@ void io_utils::print_population(const std::span<Chromosome> population) {
     std::cout << std::endl;
 }
 
+void io_utils::print_population_stats(const int options, const uint64_t population_size,
+                                      const uint64_t total_fitness,
+                                      const uint64_t current_best_fitness) {
+    if (options & io_utils::PRINT_AVG)
+        std::cout << "Srednie przystosowanie nowej populacji: " << total_fitness / population_size
+                  << "\n";
+    if (options & io_utils::PRINT_BEST_FITNESS)
+        std::cout << "Najlepsze przystosowanie: " << current_best_fitness << "\n";
+}
+
+
 void io_utils::print_population_stats(const int options, const std::span<Chromosome>& pop,
                                       const uint64_t total_fitness, const size_t best_index,
                                       const uint64_t current_best_fitness) {
@@ -81,7 +92,8 @@ void io_utils::log_results_to_csv(const std::string& filename, const ProgramArgs
 
     if (!file_exists) {
         file << "MODE,POP_SIZE,CROSS_CHANCE,MUTATION_CHANCE,PER_GENE_MUTATION_CHANCE,INVERSION_CHANCE,REPAIR_CHANCE,MAX_GENERATIONS,"
-                "MAX_NO_IMPROVEMENT,ELITES,TOURNAMENT_SIZE,INITIALIZATION_METHOD,FIT_METHOD,CROSSOVER_METHOD,SELECTION_METHOD,MUTATION_METHOD,AVG_POP_FIT,BEST_FIT,BEST_FIT_PER\n";
+                "MAX_NO_IMPROVEMENT,ELITES,TOURNAMENT_SIZE,INITIALIZATION_METHOD,FIT_METHOD,CROSSOVER_METHOD,SELECTION_METHOD,"
+                "MUTATION_METHOD,PHEROMONE_INFLUENCE,HEURISTIC_INFLUENCE,EVAPORATION_RATE,PHEROMONE_INIT,REINFORCEMENT_CONSTANT,AVG_POP_FIT,BEST_FIT,BEST_FIT_PER\n";
     }
 
     const auto mutation_method = to_string(args.mutation_method);
@@ -107,6 +119,11 @@ void io_utils::log_results_to_csv(const std::string& filename, const ProgramArgs
         << crossover_method << ","
         << selection_method << ","
         << mutation_method << ","
+        << "N/A" << ","
+        << "N/A" << ","
+        << "N/A" << ","
+        << "N/A" << ","
+        << "N/A" << ","
         << avg_population_fitness_ratio << ","
         << best_fitness << ","
         << best_fitness_ratio << "\n";
@@ -128,6 +145,11 @@ void io_utils::log_results_to_csv(const std::string& filename, const ProgramArgs
         << "N/A" << ","
         << "N/A" << ","
         << "N/A" << ","
+        << args.pheromone_influence << ","
+        << args.heuristic_influence << ","
+        << args.evaporation_rate << ","
+        << args.pheromone_init << ","
+        << args.reinforcement_constant << ","
         << avg_population_fitness_ratio << ","
         << best_fitness << ","
         << best_fitness_ratio << "\n";

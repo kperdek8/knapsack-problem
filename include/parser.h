@@ -19,23 +19,30 @@ struct ProgramArgs {
     std::string input_file;
     AlgorithmMode mode = AlgorithmMode::GA;
     int pop_size = 100;
+    int max_generations = 50;
+    int max_no_improvement = 20;
+    InitMethod initialization_method = InitMethod::SINGLE_ITEM;
+    FitMethod fit_method = FitMethod::ZERO_PENALTY;
+    bool debug_output = false;
+    // GA
     float cross_chance = 0.85f;
     float inversion_chance = 0.05f;
     float repair_chance = 0.05f;
     float mutation_chance = 0.1f;
-    int max_generations = 50;
-    int max_no_improvement = 20;
     int elites = 0;
     float mutate_per_gene = 0.005f;
     int tournament_size = 5;
     bool inversion_enabled = false;
     bool repair_enabled = false;
-    InitMethod initialization_method = InitMethod::SINGLE_ITEM;
-    FitMethod fit_method = FitMethod::ZERO_PENALTY;
     CrossoverMethod crossover_method = CrossoverMethod::ONE_POINT;
     MutationMethod mutation_method = MutationMethod::BIT_FLIP;
     SelectionMethod selection_method = SelectionMethod::ROULETTE;
-    bool debug_output = false;
+    // ACO
+    float pheromone_influence = 1.0f;
+    float heuristic_influence = 1.0f;
+    float evaporation_rate = 0.1f;
+    float pheromone_init = 0.1f;
+    float reinforcement_constant = 1.0f;
 };
 
 class Parser {

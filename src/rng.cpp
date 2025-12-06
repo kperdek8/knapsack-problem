@@ -3,7 +3,7 @@
 #include <random>
 
 
-static std::mt19937_64 gen(std::random_device{}());
+std::mt19937_64 gen(std::random_device{}());
 
 int random_int(const int min, const int max) {
     std::uniform_int_distribution<int> dist(min, max);

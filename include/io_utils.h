@@ -17,6 +17,7 @@ namespace io_utils {
         PRINT_SUMMARY = 1 << 4,
         PRINT_FINAL_BEST_CHROM = 1 << 5,
         PRINT_FINAL_BEST_FITNESS = 1 << 6,
+        WAIT_FOR_NEXT_GEN = 1 << 7,
     };
     // INPUT
     std::vector<Item> load_items(const std::string& filename, int& max_weight, int& optimal_value);
@@ -25,6 +26,7 @@ namespace io_utils {
     void log_results_to_csv(const std::string& filename, const ProgramArgs& args, uint64_t best_fitness,
                             float best_fitness_ratio, float avg_population_fitness_ratio);
     void print_population(std::span<Chromosome> population);
+    void print_population_stats(int options, uint64_t populzation_size, uint64_t total_fitness, uint64_t current_best_fitness);
     void print_population_stats(int options,
         const std::span<Chromosome>& pop, uint64_t total_fitness, size_t best_index, uint64_t current_best_fitness
     );

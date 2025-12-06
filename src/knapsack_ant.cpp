@@ -2,9 +2,11 @@
 #include <helper.h>
 
 #include <algorithm>
+#include <cmath>
 #include <filesystem>
 #include <iostream>
 #include <numeric>
+#include <random>
 #include <span>
 #include <string>
 #include <tuple>
@@ -14,101 +16,117 @@
 #include "chromosome.h"
 #include "io_utils.h"
 #include "item.h"
-#include "pop_fit.h"
-#include "pop_init.h"
 #include "rng.h"
 
-// W razie problemu z wydajnością zamiast zwracać fitness_values można przyjąć
-// referencję jako parametr by uniknać kopiowania listy.
-std::tuple<std::vector<uint64_t>, uint64_t, size_t, std::vector<size_t>> population_fitness(
-                                                             const std::span<Chromosome> population,
-                                                             const std::span<Item> items,
-                                                             const int max_weight,
-                                                             const FitMethod method,
-                                                             size_t elite_count) {
-    const size_t pop_size = population.size();
-    uint64_t best_fitness = 0;
-    size_t best_index = 0;
-    uint64_t total_fitness = 0;
-    std::vector<uint64_t> fitness_values(population.size());
+size_t choose_index_by_probabilities(const std::vector<size_t>& candidates,
+                                     const std::vector<double>& pheromone,
+                                     const std::vector<double>& heuristic) {
+    if (candidates.empty())
+        throw std::invalid_argument("Brak kandydatow do wyboru");
 
-    // Zawsze zwracaj przynajmniej najlepszego osobnika
-    if(elite_count < 0)
-        elite_count = 1;
+    std::vector<double> weights(candidates.size());
+    double total_weight = 0.0;
 
-    // Wyliczenie przystosowania kazdego osobnika
-    for (size_t i = 0; i < population.size(); ++i) {
-        fitness_values[i] = fitness(items, population[i], max_weight, method);
-        total_fitness += fitness_values[i];
-
-        if (fitness_values[i] > best_fitness) {
-            best_fitness = fitness_values[i];
-            best_index = i;
-        }
+    // Oblicz wagę dla każdego kandydata
+    for (size_t i = 0; i < candidates.size(); ++i) {
+        weights[i] = pheromone[candidates[i]] * heuristic[candidates[i]];
+        total_weight += weights[i];
     }
 
-    std::vector<size_t> elite_indices(elite_count);
-    // Wczesny powrot jesli elitaryzm jest wylaczony
-    if(elite_count < 1) {
-        return {std::move(fitness_values), total_fitness, best_index, std::move(elite_indices)};
+    // Losowanie proporcjonalne do wag
+    double r = random_float(0, total_weight);
+    double cumulative = 0.0;
+
+    for (size_t i = 0; i < candidates.size(); ++i) {
+        cumulative += weights[i];
+        if (r <= cumulative)
+            return candidates[i];
     }
 
-    // Wyszukanie elit
-    std::vector<size_t> idx(pop_size);
-    std::iota(idx.begin(), idx.end(), 0);
-
-    // Posortowanie N = {elite_count} najlepszych osobnikow
-    std::ranges::partial_sort(
-        idx.begin(),
-        idx.begin() + elite_count,
-        idx.end(),
-        [&](size_t a, size_t b) {
-            return fitness_values[a] > fitness_values[b]; // Malejaco
-        }
-    );
-
-    for (size_t i = 0; i < elite_count; ++i)
-        elite_indices[i] = idx[i];
-
-    return {std::move(fitness_values), total_fitness, best_index, std::move(elite_indices)};
+    throw std::logic_error("Funkcja losujaca nie zwrocila poprawnie kandydata");
 }
 
 std::tuple<uint64_t, std::vector<uint64_t>> algorithm(const ProgramArgs& args, const std::span<Item> items, const int max_weight,
-              int output_mask = 0) {
+              const int output_mask = 0) {
     uint64_t best_individual_fitness = 0;
     int generations_without_improvement = 0;
-    const unsigned int item_count = items.size();
 
     std::vector<uint64_t> average_fitness_history; // średnie przystosowanie w każdej generacji
     average_fitness_history.reserve(args.max_generations);
 
-    std::vector<Chromosome> population{};
-    population.resize(args.pop_size);
-    initialize_population(population, items, item_count, max_weight, args.initialization_method);
-
-    // Wektor dla nowej populacji
-    std::vector<Chromosome> new_population(args.pop_size);
+    // Wyliczenie heurystyki przedmiotow
+    std::vector<double> heuristic(items.size());
+    std::ranges::transform(items, heuristic.begin(), [](const Item& item){ return static_cast<float>(item.value) / static_cast<float>(item.weight); });
+    // Inicjalizacja feromonow
+    std::vector<double> pheromone(items.size(), args.pheromone_init);
 
     // Pierwszy warunek stopu: Limit liczby generacji
-    for (int generations = 0; generations < args.max_generations; ++generations) {
+    for (int generation = 0; generation < args.max_generations; ++generation) {
         if (output_mask & io_utils::PRINT_GENERATION)
-            std::cout << "Generacja " << generations << std::endl;
+            std::cout << "Generacja " << generation << std::endl;
+        uint64_t generation_total_fitness = 0;
+        uint64_t generation_best_fitness = 0;
 
-        auto [fitness_values, total_fitness, best_index, best_indices] = population_fitness(
-            population, items, max_weight, args.fit_method, args.elites);  // Wyliczenie przystosowania osobników
+        std::vector<Chromosome> generation_solutions;
+        std::vector<uint64_t> generation_fitnesses;
 
-        // Przystosowanie najlepszego osobnika z populacji i srednia populacji
-        const uint64_t current_best_fitness = fitness_values[best_index];
-        const uint64_t average_fitness = total_fitness / population.size();
-        average_fitness_history.push_back(average_fitness);
+        // Iteracja po mrówkach
+        for (int k = 0; k < args.pop_size; ++k) {
+            Chromosome ant_solution(items.size());
+            int current_weight = 0;
+            int current_value = 0;
 
-        if (output_mask) {
-            io_utils::print_population_stats(output_mask, population, total_fitness,
-                                             best_index, current_best_fitness);
+            // Wektor indeksow dostepnych przedmiotow
+            std::vector<size_t> available_items(items.size());
+            std::iota(available_items.begin(), available_items.end(), 0);
+
+            while (!available_items.empty()) {
+                // Filtrowanie przedmiotow ktore zmieszcza sie w plecaku
+                std::vector<size_t> candidates;
+                for (size_t idx : available_items) {
+                    if (current_weight + items[idx].weight <= max_weight)
+                        candidates.push_back(idx);
+                }
+                if (candidates.empty()) break;
+
+                // Losowanie jednego przedmiotu
+                std::vector<double> weights(candidates.size());
+                for (size_t i = 0; i < candidates.size(); ++i) {
+                    size_t item_idx = candidates[i];
+                    weights[i] = std::pow(pheromone[item_idx], args.pheromone_influence) * std::pow(heuristic[item_idx], args.heuristic_influence);
+                }
+
+                // tworzymy discrete_distribution z wag
+                std::discrete_distribution<size_t> dist(weights.begin(), weights.end());
+                size_t chosen_candidate = dist(gen); // Indeks ze zbioru kandydatow
+                size_t chosen_item = candidates[chosen_candidate]; // Indeks ze zbioru wszystkich przedmiotow
+
+                ant_solution.set(chosen_item, true);
+                current_weight += items[chosen_item].weight;
+                current_value += items[chosen_item].value;
+
+                // Usuniecie wybranego przedmiotu ze zbioru kandydatow
+                std::erase(available_items, chosen_item);
+            }
+
+            // Sumowanie fitness dla generacji
+            generation_total_fitness += current_value;
+            // Zapisanie mrowki
+            generation_solutions.push_back(ant_solution);
+            generation_fitnesses.push_back(current_value);
+
+            // Aktualizacja najlepszego rozwiązania generacji
+            if (current_value > generation_best_fitness) {
+                generation_best_fitness = current_value;
+            }
         }
 
-        if (current_best_fitness > best_individual_fitness) {
-            best_individual_fitness = current_best_fitness;
+        // Średnie przystosowanie populacji
+        uint64_t average_fitness = generation_total_fitness / args.pop_size;
+        average_fitness_history.push_back(average_fitness);
+
+        if (generation_best_fitness > best_individual_fitness) {
+            best_individual_fitness = generation_best_fitness;
             generations_without_improvement = 0;  // Reset
         } else {
             ++generations_without_improvement;
@@ -116,6 +134,36 @@ std::tuple<uint64_t, std::vector<uint64_t>> algorithm(const ProgramArgs& args, c
 
         if (generations_without_improvement >= args.max_no_improvement)
             break;  // Drugi warunek stopu: brak poprawy najlepszego rozwiązania
+
+        // Aktualizacja feromonow
+        const double best_gen_fitness = static_cast<double>(generation_best_fitness);
+
+        for (size_t i = 0; i < items.size(); ++i) {
+            // Oparowanie
+            pheromone[i] *= (1.0 - args.evaporation_rate);
+
+            // Wzmocnienie z normalizacja
+            double reinforcement_sum = 0.0;
+
+            for (int k = 0; k < args.pop_size; ++k) {
+                if (generation_solutions[k][i]) {
+                    double ant_fitness = static_cast<double>(generation_fitnesses[k]);
+                    double relative_error = (best_gen_fitness - ant_fitness) / best_gen_fitness;
+                    reinforcement_sum += args.reinforcement_constant * (1.0 / (1.0 + relative_error));
+                }
+            }
+
+            pheromone[i] += reinforcement_sum;
+        }
+
+        if (output_mask) {
+            io_utils::print_population_stats(output_mask, args.pop_size, generation_total_fitness, generation_best_fitness);
+
+            if(output_mask & io_utils::WAIT_FOR_NEXT_GEN) {
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            }
+        }
+
     }
 
     return {best_individual_fitness, std::move(average_fitness_history)};
@@ -125,11 +173,12 @@ int main(int argc, char* argv[]) {
     const ProgramArgs args = Parser::parse(argc, argv, AlgorithmMode::ACO);
 
     int debug_mask = io_utils::PRINT_SUMMARY
-        //| io_utils::PRINT_GENERATION
-        //| io_utils::PRINT_AVG
+        //| io_utils::WAIT_FOR_NEXT_GEN
+        | io_utils::PRINT_GENERATION
+        | io_utils::PRINT_AVG
         //| io_utils::PRINT_BEST_CHROM
-        | io_utils::PRINT_FINAL_BEST_CHROM
-        //| io_utils::PRINT_BEST_FITNESS
+        //| io_utils::PRINT_FINAL_BEST_CHROM
+        | io_utils::PRINT_BEST_FITNESS
         | io_utils::PRINT_FINAL_BEST_FITNESS;
     if(args.debug_output == false)
         debug_mask = 0;
@@ -144,29 +193,20 @@ int main(int argc, char* argv[]) {
     const auto population_fit_ratio = static_cast<float>(average_fitness_history.back()) / static_cast<float>(optimal_value);
     const auto best_fit_ratio = static_cast<float>(best_fitness) / static_cast<float>(optimal_value);
 
-    // Wypisanie do konsoli
-    const auto mutation_method =
-        args.mutation_method == MutationMethod::BIT_FLIP ? "BIT_FLIP" : "MULTI_BIT_FLIP";
-    const auto selection_method =
-        args.selection_method == SelectionMethod::ROULETTE ? "ROULETTE" : "TOURNAMENT";
-
     if (debug_mask & io_utils::PRINT_SUMMARY) {
         std::cout << "==========================================================" << std::endl;
-        std::cout << "POP_SIZE CROSS_CHANCE MUTATION_CHANCE MUTATION_PER_GENE_CHANCE "
-                     "MAX_GENERATIONS MAX_NO_IMPROVEMENT MUTATION_METHOD SELECTION_METHOD BEST_FIT BEST_FIT_PER"
+        std::cout << "POP_SIZE MAX_GENERATIONS MAX_NO_IMPROVEMENT PHEROMONE_INFLUENCE HEURISTIC_INFLUENCE EVAPORATION_RATE PHEROMONE_INIT REINFORCEMENT_CONSTANT BEST_FIT BEST_FIT_PER"
                   << std::endl;
-        std::cout << args.pop_size << " " << args.cross_chance << " " << args.mutation_chance << " "
-                  << args.mutate_per_gene << " " << args.max_generations << " "
-                  << args.max_no_improvement << " " << mutation_method << " " << selection_method << " " << best_fitness << " "
+        std::cout << args.pop_size << " " << args.max_generations << " " << args.max_no_improvement << " "
+                  << args.pheromone_influence << " " << args.heuristic_influence << " " << args.evaporation_rate << " "
+                  << args.pheromone_init << " " << args.reinforcement_constant << " " << best_fitness << " "
                   << static_cast<float>(best_fitness) / static_cast<float>(optimal_value) << std::endl;
         if(debug_mask & io_utils::PRINT_BEST_FITNESS)
             std::cout << "Najlepsze przystosowanie (wszystkie populacje): " << best_fitness << std::endl;
-        if(debug_mask & io_utils::PRINT_BEST_CHROM)
+        if(debug_mask & io_utils::PRINT_FINAL_BEST_CHROM)
             std::cout << "Optymalne rozwiazanie: " << to_binary_string(optimal_value, items.size()) << std::endl;
-        std::cout << "Zblizenie do optymalnego rozwiazania: "
-                  << best_fit_ratio << std::endl;
-        std::cout << "Srednie przystosowanie ostatniej populacji: "
-          << population_fit_ratio << std::endl;
+        std::cout << "Zblizenie do optymalnego rozwiazania: " << best_fit_ratio << std::endl;
+        std::cout << "Srednie przystosowanie ostatniej populacji: " << population_fit_ratio << std::endl;
     }
 
     // Zapis do pliku .out w formacie csv

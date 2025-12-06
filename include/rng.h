@@ -1,6 +1,9 @@
 #ifndef RNG_H
 #define RNG_H
 #include <cstdint>
+#include <random>
+
+extern std::mt19937_64 gen;
 
 int random_int(int min, int max);
 uint64_t random_uint64(uint64_t min, uint64_t max);
